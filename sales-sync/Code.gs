@@ -2,7 +2,7 @@ const SALES_OWNER = 'sonices123@gmail.com';
 const SALES_DB = 'https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app';
 const SALES_TAB = '판매원본';
 // 선택한 열만 전송합니다. 고객 이름/전화번호 등 원본의 나머지 열은 전송하지 않습니다.
-const SALES_COLUMNS = {date:1,time:2,activation:14,contract:15,payment:19,model:22,color:23,serial:24,plan:28,price:46,installment:49,subsidy:54,extra:56,discount:59,staff:81,seller:89};
+const SALES_COLUMNS = {date:1,time:2,activation:14,contract:15,payment:19,model:22,color:23,serial:24,plan:28,price:46,installment:49,subsidy:54,extra:56,card:70,staff:81,seller:89};
 function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 판매 연동').addItem('처음 연결 / 자동 반영 켜기','setupSalesSync').addItem('지금 반영','syncSalesNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
@@ -29,7 +29,7 @@ function buildSalesPayload_(values,display,timezone){
   const code=salesColumn_(d[10]).toUpperCase();
   if(!/^[PD][A-Z0-9]{5,20}$/.test(code))throw new Error((i+1)+'행 K열 판매매장코드를 확인해주세요. 기존 자료를 유지했습니다.');
   const row={storeCode:code,saleType:salesColumn_(d[7])};
-  for(const key in SALES_COLUMNS){const j=SALES_COLUMNS[key]-1;row[key]=salesColumn_(d[j]);if(['price','installment','subsidy','extra','discount'].includes(key)&&typeof v[j]==='number')row[key]=v[j];}
+  for(const key in SALES_COLUMNS){const j=SALES_COLUMNS[key]-1;row[key]=salesColumn_(d[j]);if(['price','installment','subsidy','extra'].includes(key)&&typeof v[j]==='number')row[key]=v[j];}
   if(v[0] instanceof Date)row.date=Utilities.formatDate(v[0],timezone,'yyyy-MM-dd');
   else {const match=row.date.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);if(match)row.date=match[1]+'-'+match[2].padStart(2,'0')+'-'+match[3].padStart(2,'0');}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(row.date))throw new Error((i+1)+'행 개통일 형식을 확인해주세요.');
