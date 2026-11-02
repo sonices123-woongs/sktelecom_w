@@ -8,7 +8,7 @@ export function salesScope(user,access,owner=false){
  const code=id.slice(0,6).toUpperCase();
  return /^P[A-Z0-9]{5}$/.test(code)?'byStore/'+code:null;
 }
-export const columns=[['date','개통일'],['time','개통시간'],['model','모델명'],['activation','개통정보'],['contract','약정정보'],['payment','할부여부'],['plan','요금제'],['installment','단말기할부금'],['subsidy','공통지원금'],['extra','추가지원금'],['discount','선할인금액'],['staff','담당'],['seller','판매처']];
+export const columns=[['date','개통일'],['time','시간'],['model','모델명'],['activation','개통정보'],['contract','약정정보'],['payment','할부'],['plan','요금제'],['installment','단말기할부금'],['subsidy','공통지원금'],['extra','추가지원금'],['card','제휴카드'],['staff','담당'],['seller','판매처']];
 export function filterSales(rows,f){return rows.filter(r=>(!f.date||r.date===f.date)&&(!f.staff||r.staff===f.staff)&&(!f.seller||r.seller===f.seller)&&((f.model||'').trim().length<3||String(r.model||'').toLowerCase().includes(f.model.trim().toLowerCase())))}
 export function sellerOptions(rows,staff){return [...new Set(rows.filter(r=>!staff||r.staff===staff).map(r=>r.seller).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'))}
 export function mountSales(root,{user,access,owner,db,dbApi}){
@@ -27,7 +27,7 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  let updatedAt=0,loaded=false;
  function paint(){
   if(dead)return;const selected=filterSales(rows,f),pages=Math.max(1,Math.ceil(selected.length/50));page=Math.min(page,pages);
-  const latest=rows.reduce((last,r)=>r.date>last?r.date:last,'');status.textContent=loaded?(latest?'개통일 마지막날 ('+latest+') 기준 자료입니다.':'개통일 마지막날 기준 자료입니다.'):'판매 자료를 불러오는 중…';
+  const latest=rows.reduce((last,r)=>r.date>last?r.date:last,'');status.textContent=loaded?(latest?'개통일('+latest+')기준 자료입니다.':'개통일 기준 자료입니다.'):'판매 자료를 불러오는 중…';
   wrap.replaceChildren();pager.replaceChildren();
   if(!selected.length){wrap.append(el('p',rows.length?'조건에 맞는 판매가 없습니다.':'아직 반영된 판매 자료가 없습니다.'));return}
   const table=el('table'),caption=el('caption','판매현황'),head=el('thead'),tr=el('tr'),body=el('tbody');caption.className='sr-only';for(const [,label] of columns){const th=el('th',label);th.scope='col';th.dataset.column=columns[tr.children.length][0];tr.append(th)}head.append(tr);
