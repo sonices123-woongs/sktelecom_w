@@ -16,7 +16,13 @@ function resetMemberPassword(username,password){
   const token=ScriptApp.getOAuthToken();
   const call=(method,payload)=>{
     const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/projects/'+SKW_PROJECT+'/accounts:'+method,{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+token},payload:JSON.stringify(payload),muteHttpExceptions:true});
-    if(response.getResponseCode()!==200)throw new Error('Firebase 처리 실패 ('+response.getResponseCode()+'). 계정 권한과 비밀번호 정책을 확인해주세요.');
+    if(response.getResponseCode()!==200){
+      let info={};try{info=JSON.parse(response.getContentText()).error||{}}catch(ignore){}
+      const details=info.details||[];
+      const parts=[info.status||'UNKNOWN'];
+      for(const d of details){if(d.reason)parts.push(d.reason);const m=d.metadata||{};for(const key of ['service','consumer','permission'])if(m[key])parts.push(key+': '+m[key])}
+      throw new Error('Firebase '+method+' 실패 ('+response.getResponseCode()+') / '+parts.join(' / '));
+    }
     return JSON.parse(response.getContentText());
   };
   const users=call('lookup',{email:[email]}).users||[];
@@ -26,4 +32,14 @@ function resetMemberPassword(username,password){
   const result=call('update',{localId:user.localId,password:password});
   if(result.localId!==user.localId)throw new Error('완료 여부를 확인하지 못했습니다. 다시 로그인하여 확인해주세요.');
   return username+' 초기화 완료. 임시 비밀번호를 전달하고 로그인 후 비밀번호 변경을 안내해주세요.';
+}
+
+function checkResetConnection(){
+  requireOwner_();
+  const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/projects/'+SKW_PROJECT+'/accounts:lookup',{method:'post',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify({email:['skw-connection-check@accounts.skw.invalid']}),muteHttpExceptions:true});
+  if(response.getResponseCode()===200){console.log('Firebase 연결 정상. 비밀번호는 변경하지 않았습니다.');return}
+  let info={};try{info=JSON.parse(response.getContentText()).error||{}}catch(ignore){}
+  const parts=['HTTP '+response.getResponseCode(),info.status||'UNKNOWN'];
+  for(const d of info.details||[]){if(d.reason)parts.push(d.reason);const m=d.metadata||{};for(const key of ['service','consumer','permission'])if(m[key])parts.push(key+': '+m[key])}
+  console.log(parts.join(' / '));
 }
