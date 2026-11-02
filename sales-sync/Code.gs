@@ -6,14 +6,16 @@ const SALES_COLUMNS = {date:1,time:2,activation:14,contract:15,payment:19,model:
 function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 판매 연동').addItem('처음 연결 / 자동 반영 켜기','setupSalesSync').addItem('지금 반영','syncSalesNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
+ console.log('1/5 소유자 및 시트 확인');
  requireSalesOwner_();const sheet=SpreadsheetApp.getActiveSpreadsheet();
  if(!sheet.getSheetByName(SALES_TAB))throw new Error('판매원본 탭을 만들어 원본을 붙여넣어주세요.');
  PropertiesService.getScriptProperties().setProperty('SALES_SHEET_ID',sheet.getId());
  syncSalesNow();
+ console.log('4/5 자동 반영 트리거 설정');
  for(const trigger of ScriptApp.getProjectTriggers())if(['salesEdited','salesChanged'].includes(trigger.getHandlerFunction()))ScriptApp.deleteTrigger(trigger);
  ScriptApp.newTrigger('salesEdited').forSpreadsheet(sheet).onEdit().create();
  ScriptApp.newTrigger('salesChanged').forSpreadsheet(sheet).onChange().create();
- SpreadsheetApp.getUi().alert('연결 완료! 판매원본에 붙여넣으면 자동 반영됩니다.');
+ console.log('5/5 연결 완료! 판매원본에 붙여넣으면 자동 반영됩니다.');
 }
 function salesEdited(e){if(e&&e.range&&e.range.getSheet().getName()===SALES_TAB)syncSalesNow()}
 function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT')syncSalesNow()}
@@ -40,15 +42,17 @@ function buildSalesPayload_(values,display,timezone){
  return {all,byStore};
 }
 function syncSalesNow(){
- requireSalesOwner_();const lock=LockService.getScriptLock();lock.waitLock(30000);
+ requireSalesOwner_();console.log('2/5 판매 원본 읽기');const lock=LockService.getScriptLock();
+ if(!lock.tryLock(5000))throw new Error('다른 판매 반영이 진행 중입니다. 잠시 후 다시 실행해주세요.');
  try{
   const id=PropertiesService.getScriptProperties().getProperty('SALES_SHEET_ID');
   const book=id?SpreadsheetApp.openById(id):SpreadsheetApp.getActiveSpreadsheet(),sheet=book.getSheetByName(SALES_TAB);
   if(!sheet)throw new Error('판매원본 탭이 없습니다.');
   if(sheet.getLastColumn()<89)throw new Error('CK열까지 원본을 붙여넣어주세요.');
   const range=sheet.getRange(1,1,sheet.getLastRow(),89),payload=buildSalesPayload_(range.getValues(),range.getDisplayValues(),book.getSpreadsheetTimeZone());
+  console.log('3/5 Firebase에 판매 '+Object.keys(payload.all.rows).length+'건 전송');
   const response=UrlFetchApp.fetch(SALES_DB+'/sales.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
   if(response.getResponseCode()!==200)throw new Error('Firebase 반영 실패 ('+response.getResponseCode()+'). 연결 프로젝트와 소유자 권한을 확인해주세요.');
-  book.toast('판매 '+Object.keys(payload.all.rows).length+'건 반영 완료','SKW 판매 연동',5);
+  console.log('판매 '+Object.keys(payload.all.rows).length+'건 반영 완료');
  }finally{lock.releaseLock()}
 }
