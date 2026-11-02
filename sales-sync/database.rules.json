@@ -1,0 +1,75 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "public": {
+      "cardGuideNovember2026": {
+        ".read": true,
+        ".write": "auth != null && (auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com')",
+        ".validate": "newData.hasChildren(['revision', 'cards', 'terms'])",
+        "revision": {
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        }
+      }
+    },
+    "memberRequests": {
+      ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('manageUsers').val() === true))",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && !data.exists()",
+        ".validate": "newData.hasChildren(['username', 'createdAt'])",
+        "username": {
+          ".validate": "newData.isString() && auth.token.email === newData.val() + '@accounts.skw.invalid'"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "memberAccess": {
+      ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('manageUsers').val() === true))",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && newData.exists() && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || ((root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('manageUsers').val() === true) && $uid !== auth.uid && data.child('manageUsers').val() !== true))",
+        ".validate": "newData.hasChildren(['username', 'active', 'permissions', 'revision', 'updatedAt'])",
+        "username": {
+          ".validate": "newData.isString()"
+        },
+        "active": {
+          ".validate": "newData.isBoolean()"
+        },
+        "manageUsers": {
+          ".validate": "newData.isBoolean() && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || newData.val() === data.val() || (!data.exists() && newData.val() === false))"
+        },
+        "permissions": {
+          ".validate": "newData.hasChildren(['policy', 'sales', 'inventory'])",
+          "$menu": {
+            ".validate": "($menu === 'policy' || $menu === 'sales' || $menu === 'settlement' || $menu === 'inventory') && newData.isBoolean()"
+          }
+        },
+        "revision": {
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "sales": {
+      "all": {
+        ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && auth.token.email.toLowerCase().beginsWith('d33654')))"
+      },
+      "byStore": {
+        "$store": {
+          ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && (auth.token.email.toLowerCase().beginsWith('d33654') || ($store.matches(/^P[A-Z0-9]{5}$/) && auth.token.email.toLowerCase().beginsWith($store.toLowerCase())))))"
+        }
+      }
+    }
+  }
+}
