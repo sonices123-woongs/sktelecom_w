@@ -148,8 +148,8 @@ function resetProducts(){wirelessFilter='all';articleOpen=false;articlePage=1;se
 function action(text,fn,cls='back'){const b=document.createElement('button');b.textContent=text;b.className=cls;b.onclick=fn;return b}
 function panel(title,desc,fn){const b=action('',fn,'card');const h=document.createElement('strong');h.textContent=title;const p=document.createElement('p');p.textContent=desc;b.append(h,p);return b}
 function renderProducts(root){
-if(category==='wired'){root.append(action('무선·유선 선택',()=>{category=null;resetProducts();render('products')},'categoryback'));const box=document.createElement('div');box.className='empty';box.innerHTML='<h2>유선 상품 안내 준비 중</h2><p>아직 등록된 자료가 없습니다.</p>';root.append(box);return}
-root.append(action('무선·유선 선택',()=>{category=null;resetProducts();render('products')},'categoryback'));
+if(category==='wired'){const box=document.createElement('div');box.className='empty';box.innerHTML='<h2>유선 상품 안내 준비 중</h2><p>아직 등록된 자료가 없습니다.</p>';root.append(box);return}
+
 const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
 for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
 if(!articleOpen){const heading=document.createElement('h2');heading.textContent=wirelessFilter==='all'?'무선 최신 게시글':wirelessFilter==='cards'?'제휴카드 게시글':'단말기 게시글';root.append(heading);const grid=document.createElement('div');grid.className='grid';
@@ -176,7 +176,7 @@ if(key==='products'){renderProducts(content);return}
 const messages={policy:['정책 자료 준비 중','적용일별 정책과 안내 자료가 이곳에 표시됩니다.'],sales:['내 판매현황 준비 중','판매내역과 월별 실적을 확인할 공간입니다.'],settlement:['내 정산현황 준비 중','월별 정산내역과 지급현황을 확인할 공간입니다.'],inventory:['재고현황 준비 중','모델·색상별 재고를 확인할 공간입니다.']};
 const empty=document.createElement('div');empty.className='empty';const h=document.createElement('h2');h.textContent=messages[key][0];const p=document.createElement('p');p.textContent=messages[key][1];const n=document.createElement('p');n.className='note';n.textContent='현재는 메뉴 확인 단계입니다. 내부 자료와 세부 권한은 아직 연결되지 않았습니다.';empty.append(h,p,n);content.append(empty)}
 new ResizeObserver(entries=>{for(const entry of entries)if(entry.target.offsetHeight)document.documentElement.style.setProperty('--workspace-head-height',entry.target.offsetHeight+'px')}).observe(document.querySelector('.workspacehead'));
-$('brand').onclick=home;$('loginBack').onclick=home;$('workspaceBack').onclick=home;
+$('brand').onclick=home;$('loginBack').onclick=home;$('workspaceBack').onclick=()=>{resetProducts();category=null;render('products');window.scrollTo(0,0)};
 $('guest').onclick=()=>workspace(true);$('openLogin').onclick=()=>{if(currentUser)workspace();else show('login')};
 
 function hasPasswordLogin(user){return !!user?.providerData?.some(p=>p.providerId==='password')}
