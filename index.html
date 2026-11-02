@@ -88,8 +88,11 @@ const username=(user.email||'').endsWith('@accounts.skw.invalid')?user.email.spl
 if(username){cardDbApi.runTransaction(cardDbApi.ref(cardDb,'memberRequests/'+uid),v=>v?undefined:{username,createdAt:Date.now()},{applyLocally:false}).catch(()=>{registerError='관리자 목록 등록이 완료되지 않았습니다. 연결 및 보안 규칙을 확인해주세요.';refreshAccessView()})}
 refreshAccessView();
 }
+function configureResetService(){if(!isCardAdmin())return;const value=prompt('관리자 초기화 웹앱 주소를 입력해주세요. (Apps Script의 /exec 주소)',localStorage.getItem('skwResetService')||'');if(value===null)return;const url=value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)){alert('Apps Script 웹앱의 올바른 /exec 주소를 입력해주세요.');return}localStorage.setItem('skwResetService',url);render('users')}
+function openResetService(){if(!isCardAdmin())return;const url=localStorage.getItem('skwResetService');if(!url){alert('최초 한 번 관리자 초기화 연결 설정이 필요합니다.');configureResetService();return}if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url))return;window.open(url,'_blank','noopener,noreferrer')}
 function renderMemberAdmin(root){
 if(!canManageUsers())return;
+if(isCardAdmin()){const controls=document.createElement('div');controls.className='editcontrols';controls.append(action('비밀번호 초기화',openResetService,'quiet'),action('초기화 연결 설정',configureResetService,'quiet'));root.append(controls)}
 const description=document.createElement('p');description.textContent='Firebase에서 발급한 일반 계정이 앱에 로그인하면 아래 목록에 나타납니다. 승인 전에는 상품소개만 이용할 수 있습니다. 비밀번호는 이 화면에 저장하거나 표시하지 않습니다.';root.append(description);
 if(adminListError){const err=document.createElement('p');err.className='cardnotice';err.textContent=adminListError;root.append(err)}
 const ids=[...new Set([...Object.keys(memberRequests),...Object.keys(memberRecords)])].sort((a,b)=>(memberRequests[a]?.username||a).localeCompare(memberRequests[b]?.username||b));
