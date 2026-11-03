@@ -70,6 +70,9 @@
           ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && (auth.token.email.toLowerCase().beginsWith('d33654') || ($store.matches(/^P[A-Z0-9]{5}$/) && auth.token.email.toLowerCase().beginsWith($store.toLowerCase())))))"
         }
       }
+    },
+    "inventory": {
+      ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('inventory').val() === true))"
     }
   }
 }
