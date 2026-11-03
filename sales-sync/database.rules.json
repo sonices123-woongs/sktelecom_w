@@ -63,16 +63,50 @@
     },
     "sales": {
       "all": {
-        ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && auth.token.email.toLowerCase().beginsWith('d33654')))"
+        ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && ((auth.token.email != null && auth.token.email.toLowerCase().matches(/^p[a-z0-9]{5}[^@]*@accounts\\.skw\\.invalid$/)) && root.child('accessPolicies').child('dealers').exists() ? root.child('accessPolicies').child('dealers').child('permissions').child('sales').val() === true : root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true) && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && auth.token.email.toLowerCase().beginsWith('d33654')))"
       },
       "byStore": {
         "$store": {
-          ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && (auth.token.email.toLowerCase().beginsWith('d33654') || ($store.matches(/^P[A-Z0-9]{5}$/) && auth.token.email.toLowerCase().beginsWith($store.toLowerCase())))))"
+          ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && ((auth.token.email != null && auth.token.email.toLowerCase().matches(/^p[a-z0-9]{5}[^@]*@accounts\\.skw\\.invalid$/)) && root.child('accessPolicies').child('dealers').exists() ? root.child('accessPolicies').child('dealers').child('permissions').child('sales').val() === true : root.child('memberAccess').child(auth.uid).child('permissions').child('sales').val() === true) && auth.token.email != null && auth.token.firebase.sign_in_provider === 'password' && auth.token.email.toLowerCase().endsWith('@accounts.skw.invalid') && (auth.token.email.toLowerCase().beginsWith('d33654') || ($store.matches(/^P[A-Z0-9]{5}$/) && auth.token.email.toLowerCase().beginsWith($store.toLowerCase())))))"
         }
       }
     },
     "inventory": {
-      ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && root.child('memberAccess').child(auth.uid).child('permissions').child('inventory').val() === true))"
+      ".read": "auth != null && ((auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') || (root.child('memberAccess').child(auth.uid).child('active').val() === true && ((auth.token.email != null && auth.token.email.toLowerCase().matches(/^p[a-z0-9]{5}[^@]*@accounts\\.skw\\.invalid$/)) && root.child('accessPolicies').child('dealers').exists() ? root.child('accessPolicies').child('dealers').child('permissions').child('inventory').val() === true : root.child('memberAccess').child(auth.uid).child('permissions').child('inventory').val() === true)))"
+    },
+    "accessPolicies": {
+      "dealers": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.email === 'sonices123@gmail.com' && auth.token.email_verified === true && auth.token.firebase.sign_in_provider === 'google.com') && newData.exists()",
+        ".validate": "newData.hasChildren(['permissions','revision','updatedAt'])",
+        "permissions": {
+          ".validate": "newData.hasChildren(['policy','sales','settlement','inventory'])",
+          "policy": {
+            ".validate": "newData.isBoolean()"
+          },
+          "sales": {
+            ".validate": "newData.isBoolean()"
+          },
+          "settlement": {
+            ".validate": "newData.isBoolean()"
+          },
+          "inventory": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "revision": {
+          ".validate": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
