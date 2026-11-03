@@ -1,4 +1,4 @@
-import {staffSort} from './sales-sync/sales-view.js?v=20261103-dense6';
+import {staffSort} from './sales-sync/sales-view.js?v=20261103-labels8';
 const clean=v=>String(v??'').toLowerCase().replace(/[\s_-]/g,'');
 export function capacity(model){const m=String(model||'').toUpperCase().match(/(?:^|[^0-9])(1TB|1T|512GB?|256GB?|128GB?|64GB?)(?![0-9])/);return m?m[1].replace('GB','G').replace('TB','T'):'기본용량'}
 export function inventoryMatch(item,query){const q=clean(query);if(!q)return true;return (q.length>=2&&clean(item.location).includes(q))||(q.length>=3&&(clean(item.modelName).includes(q)||(/^\d+$/.test(q)&&String(item.modelName).replace(/\D/g,'').includes(q))))||(q.length>=4&&clean(item.serialNo).includes(q))}
@@ -14,14 +14,14 @@ export function mountInventory(root,{db,dbApi,user,access,owner}){
  const search=el('input');search.type='search';search.placeholder='보유처 2자 · 모델 3자 · 일련번호 4자';search.setAttribute('aria-label','재고 검색');search.oninput=()=>{f.search=search.value;page=1;refreshFilters();paint()};tools.append(search);
  const filters=el('div');filters.className='stockfilters';
  function values(key){return [...new Set(filterInventory(rows,f,key).map(r=>r[key]).filter(Boolean))].sort((a,b)=>key==='manager'?staffSort(a,b):a.localeCompare(b,'ko',{numeric:true}))}
- function summary(key){const v=f[key];buttons[key].textContent=v.length===0?{manager:'담당',region:'지역',capacity:'용량',color:'색상'}[key]+' 전체':v.length===1?v[0]:v[0]+' 외 '+(v.length-1)}
+ function summary(key){const v=f[key];buttons[key].textContent=v.length===0?{manager:'담당',region:'지역',capacity:'용량',color:'색상'}[key]:v.length===1?v[0]:v[0]+' 외 '+(v.length-1)}
  function refreshFilters(){for(const key of Object.keys(buttons))summary(key)}
  function openFilter(key,label){
   dialog?.remove();const d=el('dialog');dialog=d;d.className='salesfilterdialog';d.append(el('h2',label+' 선택'));const list=el('div');list.className='salesfilterlist';d.append(list);
   function draw(){list.replaceChildren();const options=[...new Set([...values(key),...f[key]])].sort((a,b)=>key==='manager'?staffSort(a,b):a.localeCompare(b,'ko',{numeric:true}));for(const v of ['',...options]){const l=el('label'),c=el('input');c.type='checkbox';c.checked=v?f[key].includes(v):!f[key].length;c.onchange=()=>{f[key]=!v?[]:c.checked?[...f[key],v]:f[key].filter(x=>x!==v);page=1;refreshFilters();paint();draw()};l.append(c,document.createTextNode(v||'전체'));list.append(l)}}
   draw();const done=el('button','선택 완료');done.className='quiet';done.onclick=()=>d.close();d.append(done);d.onclose=()=>{d.remove();if(dialog===d)dialog=null};document.body.append(d);d.showModal();
  }
- for(const [key,label] of [['manager','담당'],['region','지역'],['capacity','용량'],['color','색상']]){const l=el('label'),b=el('button',label+' 전체');b.className='salesselect';b.type='button';b.setAttribute('aria-label',label+' 다중 선택');b.onclick=()=>openFilter(key,label);l.append(b);filters.append(l);buttons[key]=b}
+ for(const [key,label] of [['manager','담당'],['region','지역'],['capacity','용량'],['color','색상']]){const l=el('label'),b=el('button',label);b.className='salesselect';b.type='button';b.setAttribute('aria-label',label+' 다중 선택');b.onclick=()=>openFilter(key,label);l.append(b);filters.append(l);buttons[key]=b}
  const actions=el('div');actions.className='stockactions';const sort=el('button','담당·지역·보유처순');sort.type='button';sort.className='stocksorttext';sort.setAttribute('aria-label','정렬 기준 변경');sort.title='누르면 지역순, 색상순, 기본순으로 바뀝니다.';sort.onclick=()=>{const modes=['DEFAULT','REGION','COLOR'];f.sort=modes[(modes.indexOf(f.sort)+1)%modes.length];sort.textContent={DEFAULT:'담당·지역·보유처순',REGION:'지역순',COLOR:'색상순'}[f.sort];page=1;paint()};
  const reset=el('button','필터 초기화');reset.className='quiet';reset.onclick=()=>{f.search='';search.value='';for(const key of Object.keys(buttons))f[key]=[];f.sort='DEFAULT';sort.textContent='담당·지역·보유처순';page=1;refreshFilters();paint()};actions.append(search,reset);
  const status=el('p');status.className='stockstatus';status.setAttribute('role','status');const list=el('div');list.className='stocklist';const pager=el('div');pager.className='stockpager';const summarybar=el('div');summarybar.className='stocksummarybar';summarybar.append(status,sort);const pinned=el('div');pinned.className='stockpinned';pinned.append(filters,actions);root.append(pinned,summarybar,list,pager);
