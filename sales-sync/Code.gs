@@ -3,7 +3,7 @@ const SALES_DB = 'https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatab
 const SALES_TAB = '판매원본';
 // 선택한 열만 전송합니다. 고객 이름/전화번호 등 원본의 나머지 열은 전송하지 않습니다.
 const SALES_COLUMNS = {date:1,time:2,activation:14,contract:15,payment:19,model:22,color:23,serial:24,plan:28,price:46,installment:49,subsidy:54,extra:56,card:70,staff:81,seller:89};
-function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 판매 연동').addItem('처음 연결 / 자동 반영 켜기','setupSalesSync').addItem('지금 반영','syncSalesNow').addToUi()}
+function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
  console.log('1/5 소유자 및 시트 확인');
@@ -17,8 +17,8 @@ function setupSalesSync(){
  ScriptApp.newTrigger('salesChanged').forSpreadsheet(sheet).onChange().create();
  console.log('5/5 연결 완료! 판매원본에 붙여넣으면 자동 반영됩니다.');
 }
-function salesEdited(e){if(e&&e.range&&e.range.getSheet().getName()===SALES_TAB)syncSalesNow()}
-function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT')syncSalesNow()}
+function salesEdited(e){if(!e?.range)return;const name=e.range.getSheet().getName();if(name===SALES_TAB)syncSalesNow();else if(name===INVENTORY_TAB)syncInventoryNow()}
+function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){const errors=[];for(const fn of [syncSalesNow,syncInventoryNow])try{fn()}catch(error){errors.push(error.message)}if(errors.length)throw new Error(errors.join(' / '))}}
 function salesColumn_(v){return String(v==null?'':v).trim()}
 function buildSalesPayload_(values,display,timezone){
  if(values.length<2)throw new Error('원본이 비어 있어 기존 판매 자료를 유지했습니다. 제목과 판매 데이터를 붙여넣어주세요.');
@@ -54,5 +54,48 @@ function syncSalesNow(){
   const response=UrlFetchApp.fetch(SALES_DB+'/sales.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
   if(response.getResponseCode()!==200)throw new Error('Firebase 반영 실패 ('+response.getResponseCode()+'). 연결 프로젝트와 소유자 권한을 확인해주세요.');
   console.log('판매 '+Object.keys(payload.all.rows).length+'건 반영 완료');
+ }finally{lock.releaseLock()}
+}
+
+const INVENTORY_TAB='재고관리';
+function cleanStock_(v){const text=String(v==null?'':v).trim();return ['0','None','null','undefined'].includes(text)?'':text}
+function buildInventoryPayload_(values,display,timezone){
+ if(values.length<2)throw new Error('재고관리 탭이 비어 있어 기존 재고를 유지했습니다.');
+ const expected=['레벨2조직명','레벨3조직명','보유처','재고이동입고일자','대표모델명','색상','일련번호','비고'];
+ if(!expected.every((name,i)=>String(display[0][i]).trim()===name))throw new Error('재고관리 A1:H1 제목이 업로드용과 다릅니다. 제목 포함 A~H열을 붙여넣어주세요.');
+ const rows={};
+ for(let i=1;i<display.length;i++){
+  const d=display[i],modelName=cleanStock_(d[4]);if(!modelName)continue;
+  if(d.some(v=>/^#(REF!|VALUE!|N\/A|NAME\?|DIV\/0!|NUM!|SPILL!)/.test(String(v))))throw new Error((i+1)+'행에 수식 오류가 있습니다. 기존 재고를 유지했습니다.');
+  let moveDate=cleanStock_(d[3]);
+  if(values[i][3] instanceof Date)moveDate=Utilities.formatDate(values[i][3],timezone,'yyyy-MM-dd');
+  else {const match=moveDate.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);moveDate=match?match[1]+'-'+match[2].padStart(2,'0')+'-'+match[3].padStart(2,'0'):''}
+  if(moveDate==='1899-12-30')moveDate='';
+  rows['r'+String(i).padStart(7,'0')]={manager:cleanStock_(d[0]),region:cleanStock_(d[1]),location:cleanStock_(d[2]),moveDate,modelName,color:cleanStock_(d[5]),serialNo:cleanStock_(d[6]),note:cleanStock_(d[7])};
+ }
+ const count=Object.keys(rows).length;if(!count)throw new Error('재고가 0건이어서 기존 재고를 유지했습니다.');
+ return {updatedAt:Date.now(),count,rows};
+}
+function setupInventorySync(){
+ requireSalesOwner_();const book=SpreadsheetApp.getActiveSpreadsheet();
+ if(!book.getSheetByName(INVENTORY_TAB))throw new Error('재고관리 탭을 만들어 업로드용을 붙여넣어주세요.');
+ PropertiesService.getScriptProperties().setProperty('SALES_SHEET_ID',book.getId());
+ syncInventoryNow();
+ const names=ScriptApp.getProjectTriggers().map(t=>t.getHandlerFunction());
+ if(!names.includes('salesEdited'))ScriptApp.newTrigger('salesEdited').forSpreadsheet(book).onEdit().create();
+ if(!names.includes('salesChanged'))ScriptApp.newTrigger('salesChanged').forSpreadsheet(book).onChange().create();
+ console.log('재고 자동 반영 설정 완료. 판매원본과 재고관리는 각각 별도로 반영됩니다.');
+}
+function syncInventoryNow(){
+ requireSalesOwner_();console.log('재고관리 읽기 시작');const lock=LockService.getScriptLock();
+ if(!lock.tryLock(10000))throw new Error('다른 자료 반영이 진행 중입니다. 잠시 후 다시 실행해주세요.');
+ try{
+  const id=PropertiesService.getScriptProperties().getProperty('SALES_SHEET_ID'),book=id?SpreadsheetApp.openById(id):SpreadsheetApp.getActiveSpreadsheet(),sheet=book.getSheetByName(INVENTORY_TAB);
+  if(!sheet)throw new Error('재고관리 탭이 없습니다.');
+  const range=sheet.getRange(1,1,Math.max(1,sheet.getLastRow()),8),payload=buildInventoryPayload_(range.getValues(),range.getDisplayValues(),book.getSpreadsheetTimeZone());
+  console.log('재고 '+payload.count+'건 Firebase 전송');
+  const result=UrlFetchApp.fetch(SALES_DB+'/inventory.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
+  if(result.getResponseCode()!==200)throw new Error('재고 반영 실패 ('+result.getResponseCode()+'). 소유자 권한과 프로젝트 연결을 확인해주세요.');
+  console.log('재고 '+payload.count+'건 반영 완료');
  }finally{lock.releaseLock()}
 }
