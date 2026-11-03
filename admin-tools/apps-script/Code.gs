@@ -5,9 +5,10 @@ function requireOwner_(){
 }
 function doGet(e){
   requireOwner_();
+  if(e&&e.parameter&&e.parameter.bridge==='1'){const t=HtmlService.createTemplateFromFile('Bridge');t.nonce=String(e.parameter.nonce||'').replace(/[^a-zA-Z0-9-]/g,'').slice(0,80);return t.evaluate().setTitle('SKW 초기화 연결').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)}
   return HtmlService.createHtmlOutputFromFile('Reset').setTitle('SKW 비밀번호 초기화');
 }
-function resetMemberPassword(username,password){
+function resetMemberPassword_(username,password){
   requireOwner_();
   username=String(username||'').trim().toLowerCase();
   if(!/^[a-z0-9][a-z0-9._-]{1,49}$/.test(username))throw new Error('아이디 형식을 확인해주세요.');
@@ -29,7 +30,7 @@ function resetMemberPassword(username,password){
   if(users.length!==1||users[0].email.toLowerCase()!==email)throw new Error('해당 아이디를 찾지 못했습니다.');
   const user=users[0];
   if(!(user.providerUserInfo||[]).some(p=>p.providerId==='password'))throw new Error('일반 아이디 계정만 초기화할 수 있습니다.');
-  const result=call('update',{localId:user.localId,password:password});
+  const result=call('update',{localId:user.localId,password:password,validSince:String(Math.floor(Date.now()/1000))});
   if(result.localId!==user.localId)throw new Error('완료 여부를 확인하지 못했습니다. 다시 로그인하여 확인해주세요.');
   return username+' 초기화 완료. 임시 비밀번호를 전달하고 로그인 후 비밀번호 변경을 안내해주세요.';
 }
@@ -42,4 +43,18 @@ function checkResetConnection(){
   const parts=['HTTP '+response.getResponseCode(),info.status||'UNKNOWN'];
   for(const d of info.details||[]){if(d.reason)parts.push(d.reason);const m=d.metadata||{};for(const key of ['service','consumer','permission'])if(m[key])parts.push(key+': '+m[key])}
   console.log(parts.join(' / '));
+}
+
+function resetFromApp(idToken,username){
+ requireOwner_();
+ if(typeof idToken!=='string'||idToken.length>10000)throw new Error('관리자 인증이 필요합니다.');
+ const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyCFz-2jzyAPKBRxTtao3qFxPfDQ5iD5vUI',{method:'post',contentType:'application/json',payload:JSON.stringify({idToken:idToken}),muteHttpExceptions:true});
+ if(response.getResponseCode()!==200)throw new Error('관리자 로그인을 다시 확인해주세요.');
+ const users=JSON.parse(response.getContentText()).users||[];
+ const u=users[0];
+ if(users.length!==1||String(u.email).toLowerCase()!==SKW_OWNER||!u.emailVerified||!(u.providerUserInfo||[]).some(p=>p.providerId==='google.com'))throw new Error('소유자 관리자만 초기화할 수 있습니다.');
+ // No password or ID token is persisted or logged.
+ const password='Sk!'+Utilities.getUuid().replace(/-/g,'').slice(0,15);
+ resetMemberPassword_(username,password);
+ return {ok:true,password:password};
 }
