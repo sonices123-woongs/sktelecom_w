@@ -1,0 +1,9 @@
+<!doctype html><html><body><script>
+const nonce=<?!= JSON.stringify(nonce) ?>,appOrigin='https://sonices123-woongs.github.io';
+window.addEventListener('message',e=>{
+ const d=e.data;if(e.source!==window.top||e.origin!==appOrigin||!d||d.type!=='SKW_RESET_REQUEST'||d.nonce!==nonce)return;
+ const requestId=d.requestId;
+ google.script.run.withSuccessHandler(r=>window.top.postMessage({type:'SKW_RESET_RESULT',nonce,requestId,ok:true,password:r.password},appOrigin)).withFailureHandler(()=>window.top.postMessage({type:'SKW_RESET_RESULT',nonce,requestId,ok:false,error:'초기화 실패. 관리자 인증·Firebase 권한·대상 아이디를 확인해주세요.'},appOrigin)).resetFromApp(d.token,d.username);
+});
+window.top.postMessage({type:'SKW_RESET_READY',nonce},appOrigin);
+</script></body></html>
