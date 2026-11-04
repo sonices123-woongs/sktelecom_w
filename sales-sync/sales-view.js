@@ -20,7 +20,7 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  const controls=el('div');controls.className='salesfilters';const f={date:[],activation:[],staff:[],seller:[],model:''},inputs={};
  const status=el('p','판매 자료를 불러오는 중…');status.setAttribute('role','status');
  const wrap=el('div');wrap.className='salestable';const pager=el('div');pager.className='editcontrols';
- let rows=[],page=1,dead=false;
+ let rows=[],page=1,dead=false,initialDateSet=false;
  let activeDialog=null;
  const filterValues={date:[],activation:[],staff:[],seller:[]};
  const basisNodes=[...document.querySelectorAll('.mobilepagebar,.workspacehead .sectiontop')].map(parent=>{const n=el('span');n.className='salesbasis';parent.append(n);return n});
@@ -63,13 +63,13 @@ const model=field('model','모델명','search');model.setAttribute('aria-label',
  function choices(key,prop,values){filterValues[key]=values||[...new Set(rows.map(r=>r[prop]).filter(Boolean))].sort((a,b)=>key==='date'?b.localeCompare(a):key==='staff'?staffSort(a,b):a.localeCompare(b,'ko'));f[key]=f[key].filter(value=>filterValues[key].includes(value));summary(key)}
  let updatedAt=0,loaded=false;
  function paint(){
-  if(dead)return;const filtered=f.date.length>0||f.activation.length>0||f.staff.length>0||f.seller.length>0||f.model.trim().length>=3,pageSize=filtered?50:30;const selected=filterSales(rows,f),pages=Math.max(1,Math.ceil(selected.length/pageSize));page=Math.min(page,pages);
+  if(dead)return;const latestDate=rows.reduce((last,r)=>r.date>last?r.date:last,'');const latestOnly=f.date.length===1&&f.date[0]===latestDate&&!f.activation.length&&!f.staff.length&&!f.seller.length&&f.model.trim().length<3;const filtered=f.date.length>0||f.activation.length>0||f.staff.length>0||f.seller.length>0||f.model.trim().length>=3,pageSize=latestOnly?Math.max(rows.length,1):50;const selected=filterSales(rows,f),pages=Math.max(1,Math.ceil(selected.length/pageSize));page=Math.min(page,pages);
   const latest=rows.reduce((last,r)=>r.date>last?r.date:last,'');for(const n of basisNodes)n.textContent=latest?'개통일('+latest+') 기준입니다.':'';status.textContent=loaded?'조회 '+selected.length.toLocaleString()+'건':'판매 자료를 불러오는 중…';
   wrap.replaceChildren();pager.replaceChildren();
   if(!selected.length){wrap.append(el('p',rows.length?'조건에 맞는 판매가 없습니다.':'아직 반영된 판매 자료가 없습니다.'));return}
   const list=el('div');list.className='salescardlist';
   let number=filtered?(page-1)*pageSize:0;
-  for(const item of selected.slice(filtered?(page-1)*pageSize:0,filtered?page*pageSize:30)){
+  for(const item of selected.slice((page-1)*pageSize,page*pageSize)){
    const card=el('article');card.className='salescompactcard';
    const top=el('div');top.className='salescardtop';
    const modelGroup=el('div');modelGroup.className='salescardmodel';
@@ -97,10 +97,10 @@ const model=field('model','모델명','search');model.setAttribute('aria-label',
    card.append(top,facts,bottom);list.append(card);
   }
   wrap.append(list);
-  if(!filtered){if(selected.length>30){const hint=el('p','처음 30건만 표시합니다. 검색·필터로 전체 자료를 조회하세요.');hint.className='initialhint';pager.append(hint)}return}
+  if(pages===1)return;
   for(const [label,step] of [['← 이전',-1],['다음 →',1]]){const b=el('button',label);b.className='quiet';b.disabled=step<0?page===1:page===pages;b.onclick=()=>{page+=step;paint()};pager.append(b);if(step<0)pager.append(el('span',page+' / '+pages))}
  }
  if(!db||!dbApi){status.textContent='판매 데이터 연결을 준비하고 있습니다. 잠시 후 판매 메뉴를 다시 열어주세요.';return ()=>{dead=true;filterObserver?.disconnect();activeDialog?.remove();basisNodes.forEach(n=>n.remove())}}
- const stop=dbApi.onValue(dbApi.ref(db,'sales/'+scope),snap=>{if(dead)return;const data=snap.val();rows=Object.values(data?.rows||{}).sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time));updatedAt=data?.updatedAt||0;loaded=true;choices('date','date');choices('activation','activation');choices('staff','staff');choices('seller','seller',sellerOptions(rows,f.staff));paint()},()=>{if(dead)return;rows=[];wrap.replaceChildren();pager.replaceChildren();status.textContent='판매 자료를 읽지 못했습니다. 관리자에게 판매 권한과 판매 데이터 보안 규칙을 확인해주세요.'});
+ const stop=dbApi.onValue(dbApi.ref(db,'sales/'+scope),snap=>{if(dead)return;const data=snap.val();rows=Object.values(data?.rows||{}).sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time));updatedAt=data?.updatedAt||0;loaded=true;choices('date','date');if(!initialDateSet){initialDateSet=true;const latest=filterValues.date[0];f.date=latest?[latest]:[];summary('date')}choices('activation','activation');choices('staff','staff');choices('seller','seller',sellerOptions(rows,f.staff));paint()},()=>{if(dead)return;rows=[];wrap.replaceChildren();pager.replaceChildren();status.textContent='판매 자료를 읽지 못했습니다. 관리자에게 판매 권한과 판매 데이터 보안 규칙을 확인해주세요.'});
  return ()=>{dead=true;rows=[];filterObserver?.disconnect();activeDialog?.remove();basisNodes.forEach(n=>n.remove());stop();wrap.replaceChildren()};
 }
