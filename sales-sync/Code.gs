@@ -114,20 +114,23 @@ function syncCommonSubsidyNow(){
  const sheet=book.getSheetByName('공통지원금');
  if(!sheet)throw new Error('공통지원금 시트를 찾을 수 없습니다.');
  const data=sheet.getDataRange().getDisplayValues();
- if(data.length<3||data[0].length<4)throw new Error('공통지원금 시트의 2단 헤더와 데이터를 확인해주세요.');
+ if(data.length<3||data[0].length<5)throw new Error('공통지원금 시트의 2단 헤더와 데이터를 확인해주세요.');
+ if(String(data[0][1]||'').trim()!=='출고가')throw new Error('공통지원금 B1에 출고가 헤더가 필요합니다.');
  const plans=[],columns=[];
- for(let c=1;c+2<data[0].length;c+=3){
+ for(let c=2;c+2<data[0].length;c+=3){
   const name=String(data[0][c]||'').trim().replace(/\n/g,' ');
   if(!name)continue;
   if(!['010','MNP','기변'].every((v,j)=>{const cell=String(data[1][c+j]||'').trim();return j===0?(cell==='010'||cell==='10'):cell===v}))throw new Error('공통지원금 '+(c+1)+'열의 010/MNP/기변 헤더를 확인해주세요.');
   plans.push(name);columns.push(c);
  }
  if(!plans.length)throw new Error('요금제 헤더가 없습니다.');
- const models={};
+ const models={},prices={};
  for(let i=2;i<data.length;i++){
   const model=String(data[i][0]||'').trim();if(!model||model==='0')continue;
   const amounts=columns.map(c=>[0,1,2].map(j=>{const t=String(data[i][c+j]||'').replace(/[,원\s]/g,'');return /^-?\d+(?:\.\d+)?$/.test(t)?Number(t):null}));
   models[model]=amounts;
+  const rawPrice=String(data[i][1]||'').replace(/[,원\\s]/g,'');
+  prices[model]=/^\\d+(?:\\.\\d+)?$/.test(rawPrice)?Number(rawPrice):null;
  }
  const sales=book.getSheetByName(SALES_TAB);
  if(!sales)throw new Error('판매원본 시트가 없습니다.');
@@ -185,7 +188,7 @@ function syncCommonSubsidyNow(){
   const amount=models[model][plans.indexOf(policyPlan)][['010','MNP','기변'].indexOf(type)];
   return {model,count:v.count,plan,type,amount};
  });
- const payload={updatedAt:Date.now(),month:now,plans,models,top};
+ const payload={updatedAt:Date.now(),month:now,plans,models,prices,top};
  const response=UrlFetchApp.fetch(SALES_DB+'/publicPolicy/commonSubsidy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('공통지원금 Firebase 반영 실패 ('+response.getResponseCode()+')');
  console.log('공통지원금 '+Object.keys(models).length+'개 모델, 이번 달 TOP '+top.length+'건 반영 완료');
