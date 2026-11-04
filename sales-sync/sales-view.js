@@ -39,7 +39,7 @@ const model=field('model','모델명','search');model.setAttribute('aria-label',
  const cardStyle=el('style');cardStyle.textContent=`
  .salestable:has(.salescardlist){max-height:none;overflow:visible;border:0;background:transparent;margin-bottom:12px}
  .salescardlist{display:grid;gap:9px}
- .salessearchline{position:sticky;top:0;z-index:15;background:#fff;padding:8px 0;box-shadow:0 2px 5px rgba(20,35,60,.08)}
+ .salessearchline{position:sticky;top:122px;z-index:29;background:#f6f7f9;padding:8px 0;box-shadow:0 2px 5px rgba(20,35,60,.08)}
  .salescompactcard{padding:12px 13px;border:1px solid #dfe5ee;border-radius:13px;background:#fff;min-width:0}
  .salescardtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}
  .salescardmodel{display:flex;align-items:baseline;gap:9px;min-width:0}
