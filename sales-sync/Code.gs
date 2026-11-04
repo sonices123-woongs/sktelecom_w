@@ -115,7 +115,7 @@ function syncCommonSubsidyNow(){
  if(data.length<3||data[0].length<4)throw new Error('공통지원금 시트의 2단 헤더와 데이터를 확인해주세요.');
  const plans=[],columns=[];
  for(let c=1;c+2<data[0].length;c+=3){
-  const name=String(data[0][c]||'').trim().replace(/\\n/g,' ');
+  const name=String(data[0][c]||'').trim().replace(/\n/g,' ');
   if(!name)continue;
   if(!['010','MNP','기변'].every((v,j)=>{const cell=String(data[1][c+j]||'').trim();return j===0?(cell==='010'||cell==='10'):cell===v}))throw new Error('공통지원금 '+(c+1)+'열의 010/MNP/기변 헤더를 확인해주세요.');
   plans.push(name);columns.push(c);
@@ -124,7 +124,7 @@ function syncCommonSubsidyNow(){
  const models={};
  for(let i=2;i<data.length;i++){
   const model=String(data[i][0]||'').trim();if(!model||model==='0')continue;
-  const amounts=columns.map(c=>[0,1,2].map(j=>{const t=String(data[i][c+j]||'').replace(/[,원\\s]/g,'');return /^-?\\d+(?:\\.\\d+)?$/.test(t)?Number(t):null}));
+  const amounts=columns.map(c=>[0,1,2].map(j=>{const t=String(data[i][c+j]||'').replace(/[,원\s]/g,'');return /^-?\d+(?:\.\d+)?$/.test(t)?Number(t):null}));
   models[model]=amounts;
  }
  const sales=book.getSheetByName(SALES_TAB);
