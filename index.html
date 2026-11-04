@@ -621,7 +621,7 @@ function renderCommonSubsidy(root){
     const wrapper=hasVariants?document.createElement('details'):document.createElement('div');
     if(hasVariants)wrapper.className='policyvariant';else wrapper.className='policysinglemodel';
     const heading=document.createElement(hasVariants?'summary':'h3');
-    heading.className='policyresultmodel';heading.textContent=name;
+    heading.className='policyresultmodel';heading.textContent=name+' · 출고가 '+money(data.prices?.[name]);
     wrapper.append(heading);
     const content=document.createElement('div');content.className='policyvariantcontent';wrapper.append(content);
     result.append(wrapper);
