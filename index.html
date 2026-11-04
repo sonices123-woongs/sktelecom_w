@@ -277,6 +277,18 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policysticky .policylookup{margin:7px 0 0}
 .policysticky .policydate{margin:0 0 6px!important}
 @media(min-width:700px){.policysticky{top:118px}}
+
+.policymultilookup{row-gap:9px}
+.policymultilookup>input,.policymultiselect>summary{min-height:45px;box-sizing:border-box;width:100%;padding:11px 10px;border:1px solid #d9deea;border-radius:9px;background:#fff;color:#23344a;font-size:15px}
+.policymultiselect{position:relative;min-width:0}
+.policymultiselect>summary{display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;white-space:nowrap;overflow:hidden}
+.policymultiselect>summary::-webkit-details-marker{display:none}
+.policymultiselect>summary:after{content:'⌄';font-size:19px;margin-left:6px}
+.policymultioptions{position:absolute;z-index:60;left:0;right:0;top:calc(100% + 3px);max-height:260px;overflow-y:auto;overscroll-behavior:contain;background:white;border:1px solid #cdd6e4;border-radius:10px;box-shadow:0 6px 22px #23344a24;padding:6px}
+.policymultirow{display:flex!important;flex-direction:row!important;align-items:center;gap:9px!important;padding:10px 5px;font-size:13px!important;color:#24344a!important;cursor:pointer;line-height:1.3}
+.policymultirow input{width:17px;height:17px;flex:none;accent-color:#2563eb}
+.policymultirow span{overflow-wrap:anywhere}
+.policymulticlear{display:block;width:100%;border:0;background:#f0f4fa;border-radius:6px;padding:9px;color:#43536a;font-size:12px;text-align:left}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -540,36 +552,65 @@ function renderCommonSubsidy(root){
   info.textContent='공통지원금 · '+(data.month||'')+' 기준';info.classList.add('policydate');
   const clean=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
   const keys=Object.keys(data.models),plans=data.plans,ranked=(data.top||[]).map(x=>x.model);
-  keys.sort((a,b)=>{const ai=ranked.indexOf(a),bi=ranked.indexOf(b);return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'ko')});
-  const form=document.createElement('div');form.className='policylookup';
-  const model=document.createElement('select'),plan=document.createElement('select'),type=document.createElement('select');
+  const family=v=>clean(v).replace(/(?:512|256|128|1024|64|32)(?:G|GB|GG)?$/,'').replace(/(?:1T|2T)$/,'');
+  keys.sort((a,b)=>{
+   const fa=family(a),fb=family(b);
+   const rank=f=>{const i=ranked.findIndex(k=>family(k)===f);return i<0?999:i};
+   return rank(fa)-rank(fb)||fa.localeCompare(fb,'ko',{numeric:true})||a.localeCompare(b,'ko',{numeric:true});
+  });
+  const form=document.createElement('div');form.className='policylookup policymultilookup';
   const search=document.createElement('input');search.type='search';search.placeholder='모델명 검색';search.autocomplete='off';search.setAttribute('aria-label','모델명 검색');
-  function fill(select,items,placeholder){select.replaceChildren();select.add(new Option(placeholder,''));for(const item of items)select.add(new Option(item,item))}
-  fill(model,keys,'모델 선택');fill(plan,plans,'전체 요금제');fill(type,['010','MNP','기변'],'전체 유형');
   const result=document.createElement('div');result.className='policyresult policyresultslarge';
   const topArea=document.createElement('section');topArea.className='policytoparea';
   const title=document.createElement('h3');title.textContent='T공통지원금 판매 TOP 5';topArea.append(title);
   const list=document.createElement('div');list.className='policytoplist';topArea.append(list);
   const money=n=>n==null?'자료 없음':Number(n).toLocaleString('ko-KR')+'원';
   const types=['010','MNP','기변'];
-  const labelFor=(label,control,extra='')=>{const l=document.createElement('label');if(extra)l.className=extra;const span=document.createElement('span');span.textContent=label;l.append(span,control);form.append(l);return l};
-  labelFor('모델',model,'policymodelfield');labelFor('검색',search,'policysearchfield');labelFor('요금제',plan);labelFor('유형',type);
+  const selected={models:new Set(),plans:new Set(),types:new Set()};
+  const menus=[];
+  function multi(name,items,set){
+   const details=document.createElement('details');details.className='policymultiselect';
+   const summary=document.createElement('summary');summary.textContent=name+' 선택';details.append(summary);
+   const options=document.createElement('div');options.className='policymultioptions';
+   const all=document.createElement('button');all.type='button';all.className='policymulticlear';all.textContent='전체 선택 해제';all.onclick=()=>{set.clear();for(const input of options.querySelectorAll('input'))input.checked=false;refresh();lookup()};
+   options.append(all);
+   for(const item of items){
+    const row=document.createElement('label');row.className='policymultirow';
+    const input=document.createElement('input');input.type='checkbox';input.value=item;
+    const span=document.createElement('span');span.textContent=item;
+    input.onchange=()=>{if(input.checked)set.add(item);else set.delete(item);refresh();lookup()};
+    row.append(input,span);options.append(row);
+   }
+   details.append(options);form.append(details);menus.push(details);
+   function refresh(){summary.textContent=set.size?name+' '+set.size+'개 선택':name+' 선택'}
+   return details;
+  }
+  multi('모델',keys,selected.models);
+  form.append(search);
+  multi('요금제',plans,selected.plans);
+  multi('유형',types,selected.types);
   sticky.append(form);area.append(result,topArea);
+  document.addEventListener('click',event=>{
+   if(!root.isConnected)return;
+   for(const menu of menus)if(menu.open&&!menu.contains(event.target))menu.open=false;
+  },{signal:(()=>{const c=new AbortController();const observer=new MutationObserver(()=>{if(!root.isConnected){c.abort();observer.disconnect()}});observer.observe(document.body,{childList:true,subtree:true});return c.signal})()});
+  for(const menu of menus)menu.addEventListener('toggle',()=>{if(menu.open)for(const other of menus)if(other!==menu)other.open=false});
   function lookup(){
    const query=clean(search.value);
-   const selected=model.value;
-   const matches=selected?[selected]:query?keys.filter(k=>clean(k).includes(query)):[];
-   const active=!!(selected||query||plan.value||type.value);
-   topArea.hidden=active;
-   result.replaceChildren();
+   const matches=keys.filter(k=>(!selected.models.size||selected.models.has(k))&&(!query||clean(k).includes(query)));
+   const active=!!(selected.models.size||query||selected.plans.size||selected.types.size);
+   topArea.hidden=active;result.replaceChildren();
    if(!active)return;
-   if(!matches.length){const p=document.createElement('p');p.className='note';p.textContent=query?'일치하는 모델이 없습니다. 모델명을 다시 검색해 주세요.':'모델을 선택하거나 검색해 주세요.';result.append(p);return}
+   if(!selected.models.size&&!query){
+    const p=document.createElement('p');p.className='note';p.textContent='모델을 선택하거나 모델명을 검색해 주세요.';result.append(p);return;
+   }
+   if(!matches.length){const p=document.createElement('p');p.className='note';p.textContent='일치하는 모델이 없습니다.';result.append(p);return}
    const displayed=matches.slice(0,30);
    for(const name of displayed){
     const heading=document.createElement('h3');heading.className='policyresultmodel';heading.textContent=name;result.append(heading);
     let found=0;
     for(let i=0;i<plans.length;i++){
-     if(plan.value&&plan.value!==plans[i])continue;
+     if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
      const values=data.models[name]?.[i];
      if(!Array.isArray(values)||!values.some(v=>v!==null&&v!==undefined))continue;
      found++;
@@ -577,7 +618,7 @@ function renderCommonSubsidy(root){
      const planTitle=document.createElement('h4');planTitle.textContent=plans[i];card.append(planTitle);
      const amounts=document.createElement('div');amounts.className='policyplanamounts';
      types.forEach((t,j)=>{
-      if(type.value&&type.value!==t)return;
+      if(selected.types.size&&!selected.types.has(t))return;
       const cell=document.createElement('div');cell.className='policyplancell';
       const label=document.createElement('span');label.textContent=t;
       const value=document.createElement('strong');value.textContent=money(values[j]);
@@ -587,11 +628,9 @@ function renderCommonSubsidy(root){
     }
     if(!found){const p=document.createElement('p');p.className='note';p.textContent='선택한 조건에 해당하는 지원금 자료가 없습니다.';result.append(p)}
    }
-   if(matches.length>displayed.length){const p=document.createElement('p');p.className='note';p.textContent='검색 결과가 많아 처음 30개 모델만 표시합니다. 모델명을 더 입력해 주세요.';result.append(p)}
+   if(matches.length>displayed.length){const p=document.createElement('p');p.className='note';p.textContent='처음 30개 모델만 표시합니다. 검색어를 더 입력해 주세요.';result.append(p)}
   }
-  model.onchange=()=>{search.value='';lookup()};
-  search.oninput=()=>{model.value='';lookup()};
-  plan.onchange=lookup;type.onchange=lookup;
+  search.oninput=lookup;
   for(const [index,item] of (data.top||[]).entries()){
    const card=document.createElement('article');card.className='salescompactcard';
    const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model;
