@@ -134,24 +134,39 @@ function syncCommonSubsidyNow(){
  const values=sales.getDataRange().getDisplayValues();
  const now=Utilities.formatDate(new Date(),book.getSpreadsheetTimeZone(),'yyyy-MM');
  const stats={};
- for(let i=1;i<values.length;i++){
-  const row=values[i],hasRep=String(values[0][2]||'').trim()==='대표모델명',date=String(row[0]||'').replace(/[./]/g,'-');
-  if(!date.startsWith(now)||!String(row[hasRep?5:4]||'').trim()==='T지원금약정')continue;
-  const model=String(row[2]||'').trim(),plan=String(row[hasRep?7:6]||'').trim();
-  if(!model)continue;
-  if(!stats[model])stats[model]={count:0,plans:{}};
-  stats[model].count++;
-  stats[model].plans[plan]=(stats[model].plans[plan]||0)+1;
- }
  const normalize_=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
- const modelKeys=Object.keys(models);
- const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).map(([model,v])=>{
+ const modelKeys=Object.keys(models),hasRep=String(values[0][2]||'').trim()==='대표모델명';
+ const resolveType_=v=>{
+  const t=String(v||'').toUpperCase().replace(/\\s/g,'');
+  if(t.includes('기변'))return '기변';
+  if(t.includes('MNP')||t.includes('번호이동'))return 'MNP';
+  if(t.includes('신규')||t.includes('010'))return '010';
+  return '';
+ };
+ for(let i=1;i<values.length;i++){
+  const row=values[i],date=String(row[0]||'').replace(/[./]/g,'-');
+  if(!date.startsWith(now)||String(row[hasRep?5:4]||'').trim()!=='T지원금약정')continue;
+  const model=String(row[2]||'').trim(),actualPlan=String(row[hasRep?7:6]||'').trim();
+  const type=resolveType_(row[hasRep?4:3]);
+  if(!model||!actualPlan||!type)continue;
   const matchingModel=modelKeys.find(k=>normalize_(k)===normalize_(model));
-  if(!matchingModel)return null;
-  const matchedPlan=Object.entries(v.plans).sort((a,b)=>b[1]-a[1]).map(([name])=>plans.find(p=>normalize_(p)===normalize_(name))||plans.find(p=>normalize_(p).includes(normalize_(name))||normalize_(name).includes(normalize_(p)))).find(p=>p&&models[matchingModel][plans.indexOf(p)]?.some(n=>n!==null));
-  if(!matchedPlan)return null;
-  return {model:matchingModel,count:v.count,plan:matchedPlan};
- }).filter(Boolean).slice(0,5);
+  const matchingPlan=plans.find(p=>normalize_(p)===normalize_(actualPlan));
+  if(!matchingModel||!matchingPlan)continue;
+  const amount=models[matchingModel][plans.indexOf(matchingPlan)]?.[['010','MNP','기변'].indexOf(type)];
+  if(amount===null||amount===undefined)continue;
+  if(!stats[matchingModel])stats[matchingModel]={count:0,plans:{}};
+  const record=stats[matchingModel];record.count++;
+  if(!record.plans[actualPlan])record.plans[actualPlan]={count:0,types:{}};
+  record.plans[actualPlan].count++;
+  record.plans[actualPlan].types[type]=(record.plans[actualPlan].types[type]||0)+1;
+ }
+ const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).slice(0,5).map(([model,v])=>{
+  const [plan,detail]=Object.entries(v.plans).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0]))[0];
+  const type=Object.entries(detail.types).sort((a,b)=>b[1]-a[1]||['010','MNP','기변'].indexOf(a[0])-['010','MNP','기변'].indexOf(b[0]))[0][0];
+  const policyPlan=plans.find(p=>normalize_(p)===normalize_(plan));
+  const amount=models[model][plans.indexOf(policyPlan)][['010','MNP','기변'].indexOf(type)];
+  return {model,count:v.count,plan,type,amount};
+ });
  const payload={updatedAt:Date.now(),month:now,plans,models,top};
  const response=UrlFetchApp.fetch(SALES_DB+'/publicPolicy/commonSubsidy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('공통지원금 Firebase 반영 실패 ('+response.getResponseCode()+')');
