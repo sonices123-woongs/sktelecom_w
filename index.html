@@ -271,6 +271,12 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyplancell span{font-size:14px;color:#65748b;font-weight:600}
 .policyplancell strong{font-size:clamp(13px,3.7vw,18px);color:#14263d;white-space:nowrap;font-variant-numeric:tabular-nums}
 .policyplanamounts:has(.policyplancell:only-child){grid-template-columns:1fr}
+
+/* 공통지원금: 기준일과 모델/검색/요금제/유형 필터 고정 */
+.policysticky{position:sticky;top:118px;z-index:25;background:#f6f7f9;padding:5px 0 9px;margin:0 0 10px;border-bottom:1px solid #e4e8ef}
+.policysticky .policylookup{margin:7px 0 0}
+.policysticky .policydate{margin:0 0 6px!important}
+@media(min-width:700px){.policysticky{top:118px}}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -524,7 +530,8 @@ function renderPolicyCategories(root){
  root.append(grid);
 }
 function renderCommonSubsidy(root){
- const info=document.createElement('p');info.className='note';info.textContent='공통지원금 자료를 불러오는 중…';root.append(info);
+ const sticky=document.createElement('div');sticky.className='policysticky';root.append(sticky);
+ const info=document.createElement('p');info.className='note';info.textContent='공통지원금 자료를 불러오는 중…';sticky.append(info);
  const area=document.createElement('div');root.append(area);
  const url='https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app/publicPolicy/commonSubsidy.json';
  fetch(url).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(data=>{
@@ -547,7 +554,7 @@ function renderCommonSubsidy(root){
   const types=['010','MNP','기변'];
   const labelFor=(label,control,extra='')=>{const l=document.createElement('label');if(extra)l.className=extra;const span=document.createElement('span');span.textContent=label;l.append(span,control);form.append(l);return l};
   labelFor('모델',model,'policymodelfield');labelFor('검색',search,'policysearchfield');labelFor('요금제',plan);labelFor('유형',type);
-  area.append(form,result,topArea);
+  sticky.append(form);area.append(result,topArea);
   function lookup(){
    const query=clean(search.value);
    const selected=model.value;
@@ -610,7 +617,14 @@ function renderPolicySection(root,id,title){
   renderCommonSubsidy(root);
  }else root.append(back,h,note);
 }
-function render(key){stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);$('mobilePageTitle').textContent=key==='products'&&category?'상품소개 > '+(category==='wireless'?'무선':'유선'):key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(mode==='guest'&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
+function render(key){stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);const mobileTitle=$('mobilePageTitle');
+mobileTitle.replaceChildren();
+if(key==='products'&&category){
+ const parent=document.createElement('button');parent.type='button';parent.className='policyheaderlink';parent.textContent='상품소개';
+ parent.onclick=()=>{resetProducts();category=null;render('products');window.scrollTo(0,0)};
+ const child=document.createElement('span');child.textContent=' › '+(category==='wireless'?'무선':'유선');
+ mobileTitle.append(parent,child);
+}else mobileTitle.textContent=key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(mode==='guest'&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
 if(canManageUsers()&&mode==='member'){const manage=action('사용자 관리',()=>openMenuPage('users'),'quiet');manage.setAttribute('aria-current',key==='users'?'page':'false');$('menu').append(manage)}
 const content=$('content');content.replaceChildren();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
 if(key==='products'&&!category){const grid=document.createElement('div');grid.className='grid';for(const [type,title,desc] of [['wireless','무선','무선 상품 안내와 상담에 활용할 세일즈톡'],['wired','유선','인터넷·TV 등 유선 상품과 상담 안내']]){const b=document.createElement('button');b.className='card';b.innerHTML='<span class="producticon" aria-hidden="true"><img src="./assets/'+type+'-icon.png" alt="" width="96" height="96"></span><strong>'+title+'</strong><p>'+desc+'</p><span class="arrow">자세히 보기 →</span>';b.onclick=()=>{resetProducts();category=type;render('products')};grid.append(b)}content.append(grid);return}
