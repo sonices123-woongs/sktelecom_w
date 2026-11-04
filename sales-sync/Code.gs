@@ -129,8 +129,8 @@ function syncCommonSubsidyNow(){
   const model=String(data[i][0]||'').trim();if(!model||model==='0')continue;
   const amounts=columns.map(c=>[0,1,2].map(j=>{const t=String(data[i][c+j]||'').replace(/[,원\s]/g,'');return /^-?\d+(?:\.\d+)?$/.test(t)?Number(t):null}));
   models[model]=amounts;
-  const rawPrice=String(data[i][1]||'').replace(/[,원\\s]/g,'');
-  prices[model]=/^\\d+(?:\\.\\d+)?$/.test(rawPrice)?Number(rawPrice):null;
+  const rawPrice=String(data[i][1]||'').replace(/[^0-9.]/g,'');
+  prices[model]=rawPrice!==''&&Number.isFinite(Number(rawPrice))?Number(rawPrice):null;
  }
  const sales=book.getSheetByName(SALES_TAB);
  if(!sales)throw new Error('판매원본 시트가 없습니다.');
