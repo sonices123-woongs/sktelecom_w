@@ -48,7 +48,7 @@ function checkResetConnection(){
 function resetFromApp(idToken,username){
  requireOwner_();
  if(typeof idToken!=='string'||idToken.length>10000)throw new Error('관리자 인증이 필요합니다.');
- const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyCFz-2jzyAPKBRxTtao3qFxPfDQ5iD5vUI',{method:'post',contentType:'application/json',payload:JSON.stringify({idToken:idToken}),muteHttpExceptions:true});
+ const response=UrlFetchApp.fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(PropertiesService.getScriptProperties().getProperty('SKW_FIREBASE_API_KEY')||''),{method:'post',contentType:'application/json',payload:JSON.stringify({idToken:idToken}),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('관리자 로그인을 다시 확인해주세요.');
  const users=JSON.parse(response.getContentText()).users||[];
  const u=users[0];
