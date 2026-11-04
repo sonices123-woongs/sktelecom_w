@@ -257,8 +257,9 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 
 .choices .card strong{font-size:21.667px}
 #headerIdentity{font-size:15px}
+ .policybreadcrumb{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:13px}.policybreadcrumb button{border:0;background:transparent;padding:4px;color:inherit;font:inherit}.policybreadcrumb strong{font-weight:700}
 </style><style>
-.policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:12px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
 .policylookup select{width:100%;min-width:0;padding:10px 6px;border:1px solid #d9deea;border-radius:9px;background:white;color:#23344a;font-size:13px}
 .policylookup label:first-child{grid-column:span 2}
@@ -534,7 +535,7 @@ function renderCommonSubsidy(root){
   area.append(form,result);
   const title=document.createElement('h3');title.textContent='T공통지원금 판매 TOP 5';area.append(title);
   const list=document.createElement('div');list.className='policytoplist';area.append(list);
-  for(const [index,item] of (data.top||[]).entries()){
+  for(const [index,item] of (data.top||[]).filter(item=>{const mk=matchModel(item.model),pk=matchPlan(item.plan);return mk&&pk&&data.models[mk]?.[plans.indexOf(pk)]?.some(n=>n!==null)}).entries()){
    const card=document.createElement('article');card.className='salescompactcard';
    const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model;
    const desc=document.createElement('p');desc.textContent='대표 요금제: '+item.plan;
@@ -552,8 +553,13 @@ function renderPolicySection(root,id,title){
  const back=document.createElement('button');back.type='button';back.className='quiet';back.textContent='← 정책 목록';back.onclick=()=>render('policy');
  const h=document.createElement('h2');h.textContent=title;
  const note=document.createElement('p');note.className='note';note.textContent='세부 정책 자료는 준비 중입니다.';
- root.append(back,h,note);
- if(id==='common'){note.remove();renderCommonSubsidy(root)}
+ if(id==='common'){
+  const crumb=document.createElement('div');crumb.className='policybreadcrumb';
+  const home=document.createElement('button');home.type='button';home.textContent='홈';home.onclick=()=>render('products');
+  const policy=document.createElement('button');policy.type='button';policy.textContent='정책';policy.onclick=()=>render('policy');
+  const current=document.createElement('strong');current.textContent='공통지원금';crumb.append(home,' › ',policy,' › ',current);root.append(crumb);
+  renderCommonSubsidy(root);
+ }else root.append(back,h,note);
 }
 function render(key){stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);$('mobilePageTitle').textContent=key==='products'&&category?'상품소개 > '+(category==='wireless'?'무선':'유선'):key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(mode==='guest'&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
 if(canManageUsers()&&mode==='member'){const manage=action('사용자 관리',()=>openMenuPage('users'),'quiet');manage.setAttribute('aria-current',key==='users'?'page':'false');$('menu').append(manage)}
