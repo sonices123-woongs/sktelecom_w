@@ -297,6 +297,11 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyvariant[open]>summary:after{content:'⌃'}
 .policyvariantcontent{padding:0 9px 3px}
 .policyvariant:not([open])>.policyvariantcontent{display:none}
+
+.policyresultmodel{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap;font-size:15px!important}
+.policy-model-name{font-size:15px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.policy-model-price{font-size:12px;font-weight:400;color:#6b778b;white-space:nowrap;margin-left:auto;margin-right:14px}
+.policyvariant>summary.policyresultmodel:after{flex:none}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -621,7 +626,10 @@ function renderCommonSubsidy(root){
     const wrapper=hasVariants?document.createElement('details'):document.createElement('div');
     if(hasVariants)wrapper.className='policyvariant';else wrapper.className='policysinglemodel';
     const heading=document.createElement(hasVariants?'summary':'h3');
-    heading.className='policyresultmodel';heading.textContent=name+' · 출고가 '+money(data.prices?.[name]);
+    heading.className='policyresultmodel';
+    const modelLabel=document.createElement('span');modelLabel.className='policy-model-name';modelLabel.textContent=name;
+    const priceLabel=document.createElement('span');priceLabel.className='policy-model-price';priceLabel.textContent='출고가 '+money(data.prices?.[name]);
+    heading.append(modelLabel,priceLabel);
     wrapper.append(heading);
     const content=document.createElement('div');content.className='policyvariantcontent';wrapper.append(content);
     result.append(wrapper);
