@@ -522,26 +522,26 @@ function renderCommonSubsidy(root){
   const form=document.createElement('div');form.className='policylookup';
   const model=document.createElement('select'),plan=document.createElement('select'),type=document.createElement('select');
   function fill(select,items,placeholder){select.replaceChildren();select.add(new Option(placeholder,''));for(const item of items)select.add(new Option(item,item))}
-  fill(model,keys.sort((a,b)=>a.localeCompare(b,'ko')),'모델 선택');
+  const ranked=(data.top||[]).map(x=>x.model);fill(model,keys.sort((a,b)=>{const ai=ranked.indexOf(a),bi=ranked.indexOf(b);return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'ko')}),'모델 선택');
   fill(plan,plans,'요금제 선택');
   fill(type,['010','MNP','기변'],'유형 선택');
   const result=document.createElement('div');result.className='policyresult';
   function money(n){return n==null?'자료 없음':Number(n).toLocaleString('ko-KR')+'원'}
-  function matchModel(name){const normalized=clean(name);return keys.find(k=>clean(k)===normalized)||keys.find(k=>clean(k).startsWith(normalized)||normalized.startsWith(clean(k)))}
+  function matchModel(name){const normalized=clean(name);return keys.find(k=>clean(k)===normalized)}
   function matchPlan(name){const normalized=clean(name);return plans.find(p=>clean(p)===normalized)||plans.find(p=>clean(p).includes(normalized)||normalized.includes(clean(p)))}
   function lookup(){result.replaceChildren();if(!model.value||!plan.value){result.textContent='모델과 요금제를 선택해주세요.';return}const i=plans.indexOf(plan.value),v=data.models[model.value]?.[i];if(!v){result.textContent='해당 지원금 자료가 없습니다.';return}const h=document.createElement('strong');h.textContent=model.value+' · '+plan.value;result.append(h);for(const [j,t] of ['010','MNP','기변'].entries()){if(type.value&&type.value!==t)continue;const p=document.createElement('p');p.textContent=t+'  '+money(v[j]);result.append(p)}}
   for(const [select,label] of [[model,'모델'],[plan,'요금제'],[type,'유형']]){const l=document.createElement('label');l.textContent=label;l.append(select);form.append(l);select.onchange=lookup}
   area.append(form,result);
-  const title=document.createElement('h3');title.textContent='이번 달 T지원금약정 판매 TOP 5';area.append(title);
+  const title=document.createElement('h3');title.textContent='T공통지원금 판매 TOP 5';area.append(title);
   const list=document.createElement('div');list.className='policytoplist';area.append(list);
   for(const [index,item] of (data.top||[]).entries()){
    const card=document.createElement('article');card.className='salescompactcard';
-   const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model+' ('+item.count+'건)';
+   const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model;
    const desc=document.createElement('p');desc.textContent='대표 요금제: '+item.plan;
    card.append(name,desc);
    const mk=matchModel(item.model),pk=matchPlan(item.plan);
    if(mk&&pk){const values=data.models[mk]?.[plans.indexOf(pk)];const grid=document.createElement('div');grid.className='policyamounts';for(const [j,t] of ['010','MNP','기변'].entries()){const cell=document.createElement('div');const label=document.createElement('small');label.textContent=t;const amount=document.createElement('strong');amount.textContent=money(values?.[j]);cell.append(label,amount);grid.append(cell)}card.append(grid)}
-   else{const missing=document.createElement('p');missing.className='note';missing.textContent='모델 또는 요금제 매칭 확인 필요';card.append(missing)}
+   else{const missing=document.createElement('p');missing.className='note';missing.textContent='지원금 자료 없음';card.append(missing)}
    list.append(card);
   }
   if(!data.top?.length){const empty=document.createElement('p');empty.className='note';empty.textContent='이번 달 T지원금약정 판매 내역이 없습니다.';list.append(empty)}
