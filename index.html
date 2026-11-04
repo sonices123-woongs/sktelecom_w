@@ -565,7 +565,7 @@ function renderCommonSubsidy(root){
   info.textContent='공통지원금 · '+(data.month||'')+' 기준';info.classList.add('policydate');
   const clean=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
   const keys=Object.keys(data.models),plans=data.plans,ranked=(data.top||[]).map(x=>x.model);
-  const family=v=>clean(v).replace(/(?:512|256|128|1024|64|32)(?:G|GB|GG)?$/,'').replace(/(?:1T|2T)$/,'');
+  const family=v=>clean(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   keys.sort((a,b)=>{
    const fa=family(a),fb=family(b);
    const rank=f=>{const i=ranked.findIndex(k=>family(k)===f);return i<0?999:i};
