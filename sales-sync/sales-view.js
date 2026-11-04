@@ -24,7 +24,7 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  let activeDialog=null;
  const filterValues={date:[],activation:[],staff:[],seller:[]};
  const basisNodes=[...document.querySelectorAll('.mobilepagebar,.workspacehead .sectiontop')].map(parent=>{const n=el('span');n.className='salesbasis';parent.append(n);return n});
- function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'개통일',activation:'유형',staff:'담당',seller:'판매처'}[key];n.textContent=key==='date'?'개통일':!picked.length?label:picked.length===1?picked[0]:picked[0]+' 외 '+(picked.length-1);n.title=picked.join(', ')||'전체'}
+ function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'개통일',activation:'유형',staff:'담당',seller:'판매처'}[key];n.textContent=label;n.title=picked.join(', ')||'전체'}
  function openChoices(key,label){
   activeDialog?.remove();const dialog=el('dialog');activeDialog=dialog;dialog.className='salesfilterdialog';const title=el('h2',label+' 선택');const list=el('div');list.className='salesfilterlist';dialog.append(title,list);
   function redraw(){list.replaceChildren();for(const [value,text] of [['','전체'],...filterValues[key].map(v=>[v,v])]){const l=el('label'),check=el('input');check.type='checkbox';check.checked=value?f[key].includes(value):!f[key].length;check.onchange=()=>{if(!value)f[key]=[];else if(check.checked)f[key]=[...f[key],value];else f[key]=f[key].filter(v=>v!==value);if(key==='staff')choices('seller','seller',sellerOptions(rows,f.staff));summary(key);page=1;paint();redraw()};l.append(check,document.createTextNode(text));list.append(l)}}
