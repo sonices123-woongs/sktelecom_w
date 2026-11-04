@@ -35,6 +35,24 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  const searchline=el('div');searchline.className='salessearchline';const model=field('model','모델명','search');model.setAttribute('aria-label','모델명 검색');model.placeholder='모델명 3자 이상 검색';model.autocomplete='off';searchline.append(model.parentElement);
  const reset=el('button','필터 초기화');reset.className='quiet salesreset';reset.onclick=()=>{for(const key of ['date','activation','staff','seller']){f[key]=[];summary(key)}f.model='';inputs.model.value='';choices('seller','seller',sellerOptions(rows,''));page=1;paint()};searchline.append(reset);
  root.append(controls,searchline,status,wrap,pager);
+ const cardStyle=el('style');cardStyle.textContent=`
+ .salestable:has(.salescardlist){max-height:none;overflow:visible;border:0;background:transparent;margin-bottom:12px}
+ .salescardlist{display:grid;gap:9px}
+ .salescompactcard{padding:12px 13px;border:1px solid #dfe5ee;border-radius:13px;background:#fff;min-width:0}
+ .salescardtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}
+ .salescardmodel{display:flex;align-items:baseline;gap:9px;min-width:0}
+ .salescardmodel strong{font-size:14px;color:#172b45;overflow-wrap:anywhere}
+ .salescardnumber{font-size:11px;color:#8a95a6;flex-shrink:0}
+ .salescardwhen{font-size:11px;color:#778396;white-space:nowrap;flex-shrink:0}
+ .salescardfacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-bottom:10px}
+ .salescardfield{display:flex;flex-direction:column;gap:3px;min-width:0}
+ .salescardlabel{font-size:10px;color:#78859a}
+ .salescardvalue{font-size:12px;color:#283447;overflow-wrap:anywhere;line-height:1.35}
+ .salescardbottom{display:flex;gap:10px;justify-content:space-between;padding-top:9px;border-top:1px solid #eef1f5;color:#536176;font-size:11px}
+ .salescardmeta{min-width:0;overflow-wrap:anywhere}
+ .salescardmeta:last-child{text-align:right}
+ .salescardmetalabel{color:#929eae}
+ `;root.append(cardStyle);
  function choices(key,prop,values){filterValues[key]=values||[...new Set(rows.map(r=>r[prop]).filter(Boolean))].sort((a,b)=>key==='date'?b.localeCompare(a):key==='staff'?staffSort(a,b):a.localeCompare(b,'ko'));f[key]=f[key].filter(value=>filterValues[key].includes(value));summary(key)}
  let updatedAt=0,loaded=false;
  function paint(){
@@ -42,9 +60,35 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
   const latest=rows.reduce((last,r)=>r.date>last?r.date:last,'');for(const n of basisNodes)n.textContent=latest?'개통일('+latest+') 기준입니다.':'';status.textContent=loaded?'조회 '+selected.length.toLocaleString()+'건':'판매 자료를 불러오는 중…';
   wrap.replaceChildren();pager.replaceChildren();
   if(!selected.length){wrap.append(el('p',rows.length?'조건에 맞는 판매가 없습니다.':'아직 반영된 판매 자료가 없습니다.'));return}
-  const table=el('table'),caption=el('caption','판매현황'),head=el('thead'),tr=el('tr'),body=el('tbody');caption.className='sr-only';const numberHead=el('th','순번');numberHead.scope='col';numberHead.dataset.column='number';tr.append(numberHead);for(const [key,label] of columns){const th=el('th',label);th.scope='col';th.dataset.column=key;tr.append(th)}head.append(tr);
-  let number=filtered?(page-1)*pageSize:0;for(const row of selected.slice(filtered?(page-1)*pageSize:0,filtered?page*pageSize:30)){const line=el('tr'),numberCell=el('td',++number);numberCell.dataset.column='number';line.append(numberCell);for(const [key] of columns){let value=row[key]??'';if(key==='date')value=String(value).slice(5);if(['price','installment','subsidy','extra','discount'].includes(key)&&typeof value==='number')value=value.toLocaleString('ko-KR');const td=el('td',value);td.dataset.column=key;td.title=String(value);line.append(td)}body.append(line)}
-  table.append(caption,head,body);wrap.append(table);if(!filtered){if(selected.length>30){const hint=el('p','처음 30건만 표시합니다. 검색·필터로 전체 자료를 조회하세요.');hint.className='initialhint';pager.append(hint)}return}
+  const list=el('div');list.className='salescardlist';
+  let number=filtered?(page-1)*pageSize:0;
+  for(const item of selected.slice(filtered?(page-1)*pageSize:0,filtered?page*pageSize:30)){
+   const card=el('article');card.className='salescompactcard';
+   const top=el('div');top.className='salescardtop';
+   const modelGroup=el('div');modelGroup.className='salescardmodel';
+   const seq=el('span',String(++number));seq.className='salescardnumber';
+   const modelName=el('strong',item.model||'-');modelName.title=item.model||'';
+   modelGroup.append(seq,modelName);
+   const when=el('time',[String(item.date||'').slice(5),item.time||''].filter(Boolean).join(' '));when.className='salescardwhen';
+   top.append(modelGroup,when);
+   const facts=el('div');facts.className='salescardfacts';
+   for(const [label,key] of [['개통정보','activation'],['약정정보','contract'],['할부','payment'],['요금제','plan']]){
+    const field=el('div');field.className='salescardfield';
+    const caption=el('span',label);caption.className='salescardlabel';
+    const value=el('span',item[key]||'-');value.className='salescardvalue';value.title=item[key]||'';
+    field.append(caption,value);facts.append(field);
+   }
+   const bottom=el('div');bottom.className='salescardbottom';
+   for(const [label,key] of [['담당','staff'],['판매처','seller']]){
+    const part=el('div');part.className='salescardmeta';
+    const title=el('span',label+' ');title.className='salescardmetalabel';
+    const value=el('span',item[key]||'-');value.title=item[key]||'';
+    part.append(title,value);bottom.append(part);
+   }
+   card.append(top,facts,bottom);list.append(card);
+  }
+  wrap.append(list);
+  if(!filtered){if(selected.length>30){const hint=el('p','처음 30건만 표시합니다. 검색·필터로 전체 자료를 조회하세요.');hint.className='initialhint';pager.append(hint)}return}
   for(const [label,step] of [['← 이전',-1],['다음 →',1]]){const b=el('button',label);b.className='quiet';b.disabled=step<0?page===1:page===pages;b.onclick=()=>{page+=step;paint()};pager.append(b);if(step<0)pager.append(el('span',page+' / '+pages))}
  }
  if(!db||!dbApi){status.textContent='판매 데이터 연결을 준비하고 있습니다. 잠시 후 판매 메뉴를 다시 열어주세요.';return ()=>{dead=true;activeDialog?.remove();basisNodes.forEach(n=>n.remove())}}
