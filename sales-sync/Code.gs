@@ -141,7 +141,7 @@ function syncCommonSubsidyNow(){
  const resolvePlan_=actual=>{
   const exact=plans.find(p=>normalize_(p)===normalize_(actual));
   if(exact)return exact;
-  const base=v=>normalize_(String(v).replace(/\\([^)]*\\)/g,''));
+  const base=v=>normalize_(String(v).replace(/\([^)]*\)/g,''));
   const candidates=plans.filter(p=>base(p)===base(actual));
   return candidates.length===1?candidates[0]:null;
  };
