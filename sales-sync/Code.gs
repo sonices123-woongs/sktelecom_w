@@ -4,7 +4,7 @@ const SALES_TAB = '판매원본';
 // 선택한 열만 전송합니다. 고객 이름/전화번호 등 원본의 나머지 열은 전송하지 않습니다.
 const SALES_HEADERS=['개통일','개통시간','단말기정보_단말기','개통정보_세부판매유형','개통정보_유통망','단말기정보_단말기결제조건','요금제','단말할부금','공통지원금','추가지원금','제휴카드선할인','레벨2조직명','정산처','정산매장코드'];
 const SALES_COLUMNS={date:1,time:2,model:3,activation:4,contract:5,payment:6,plan:7,installment:8,subsidy:9,extra:10,card:11,staff:12,seller:13};
-function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addToUi()}
+function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addItem('공통지원금 지금 반영','syncCommonSubsidyNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
  console.log('1/5 소유자 및 시트 확인');
@@ -18,8 +18,8 @@ function setupSalesSync(){
  ScriptApp.newTrigger('salesChanged').forSpreadsheet(sheet).onChange().create();
  console.log('5/5 연결 완료! 판매원본에 붙여넣으면 자동 반영됩니다.');
 }
-function salesEdited(e){if(!e?.range)return;const name=e.range.getSheet().getName();if(name===SALES_TAB)syncSalesNow();else if(name===INVENTORY_TAB)syncInventoryNow()}
-function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){const errors=[];for(const fn of [syncSalesNow,syncInventoryNow])try{fn()}catch(error){errors.push(error.message)}if(errors.length)throw new Error(errors.join(' / '))}}
+function salesEdited(e){if(!e?.range)return;const name=e.range.getSheet().getName();if(name===SALES_TAB){syncSalesNow();syncCommonSubsidyNow()}else if(name===INVENTORY_TAB)syncInventoryNow();else if(name==='공통지원금')syncCommonSubsidyNow()}
+function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){const errors=[];for(const fn of [syncSalesNow,syncInventoryNow,syncCommonSubsidyNow])try{fn()}catch(error){errors.push(error.message)}if(errors.length)throw new Error(errors.join(' / '))}}
 function salesColumn_(v){return String(v==null?'':v).trim()}
 function buildSalesPayload_(values,display,timezone){
  if(values.length<2)throw new Error('원본이 비어 있어 기존 판매 자료를 유지했습니다. 제목과 판매 데이터를 붙여넣어주세요.');
@@ -102,4 +102,48 @@ function syncInventoryNow(){
   if(result.getResponseCode()!==200)throw new Error('재고 반영 실패 ('+result.getResponseCode()+'). 소유자 권한과 프로젝트 연결을 확인해주세요.');
   console.log('재고 '+payload.count+'건 반영 완료');
  }finally{lock.releaseLock()}
+}
+
+function normalizePolicyName_(value){return String(value||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'')}
+function syncCommonSubsidyNow(){
+ requireSalesOwner_();
+ const id=PropertiesService.getScriptProperties().getProperty('SALES_SHEET_ID');
+ const book=id?SpreadsheetApp.openById(id):SpreadsheetApp.getActiveSpreadsheet();
+ const sheet=book.getSheetByName('공통지원금');
+ if(!sheet)throw new Error('공통지원금 시트를 찾을 수 없습니다.');
+ const data=sheet.getDataRange().getDisplayValues();
+ if(data.length<3||data[0].length<4)throw new Error('공통지원금 시트의 2단 헤더와 데이터를 확인해주세요.');
+ const plans=[],columns=[];
+ for(let c=1;c+2<data[0].length;c+=3){
+  const name=String(data[0][c]||'').trim().replace(/\\n/g,' ');
+  if(!name)continue;
+  if(!['010','MNP','기변'].every((v,j)=>String(data[1][c+j]||'').trim()===v))throw new Error('공통지원금 '+(c+1)+'열의 010/MNP/기변 헤더를 확인해주세요.');
+  plans.push(name);columns.push(c);
+ }
+ if(!plans.length)throw new Error('요금제 헤더가 없습니다.');
+ const models={};
+ for(let i=2;i<data.length;i++){
+  const model=String(data[i][0]||'').trim();if(!model||model==='0')continue;
+  const amounts=columns.map(c=>[0,1,2].map(j=>{const t=String(data[i][c+j]||'').replace(/[,원\\s]/g,'');return /^-?\\d+(?:\\.\\d+)?$/.test(t)?Number(t):null}));
+  models[model]=amounts;
+ }
+ const sales=book.getSheetByName(SALES_TAB);
+ if(!sales)throw new Error('판매원본 시트가 없습니다.');
+ const values=sales.getDataRange().getDisplayValues();
+ const now=Utilities.formatDate(new Date(),book.getSpreadsheetTimeZone(),'yyyy-MM');
+ const stats={};
+ for(let i=1;i<values.length;i++){
+  const row=values[i],date=String(row[0]||'').replace(/[./]/g,'-');
+  if(!date.startsWith(now)||!String(row[4]||'').includes('T지원금약정'))continue;
+  const model=String(row[2]||'').trim(),plan=String(row[6]||'').trim();
+  if(!model)continue;
+  if(!stats[model])stats[model]={count:0,plans:{}};
+  stats[model].count++;
+  stats[model].plans[plan]=(stats[model].plans[plan]||0)+1;
+ }
+ const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).slice(0,5).map(([model,v])=>({model,count:v.count,plan:Object.entries(v.plans).sort((a,b)=>b[1]-a[1])[0]?.[0]||''}));
+ const payload={updatedAt:Date.now(),month:now,plans,models,top};
+ const response=UrlFetchApp.fetch(SALES_DB+'/publicPolicy/commonSubsidy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
+ if(response.getResponseCode()!==200)throw new Error('공통지원금 Firebase 반영 실패 ('+response.getResponseCode()+')');
+ console.log('공통지원금 '+Object.keys(models).length+'개 모델, 이번 달 TOP '+top.length+'건 반영 완료');
 }
