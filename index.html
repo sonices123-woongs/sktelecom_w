@@ -257,11 +257,11 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 
 .choices .card strong{font-size:21.667px}
 #headerIdentity{font-size:15px}
- .policybreadcrumb{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:13px}.policybreadcrumb button{border:0;background:transparent;padding:4px;color:inherit;font:inherit}.policybreadcrumb strong{font-weight:700}
+ .policyheaderlink{border:0;background:transparent;padding:0;color:inherit;font:inherit;font-weight:inherit;cursor:pointer}.policydate{font-size:14px!important;font-weight:600;margin:2px 0 10px!important}.policytopamount{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f3f6fa;border-radius:9px;padding:9px 12px}.policytopamount span{font-size:12px;color:#6b7890}.policytopamount strong{font-size:16px;color:#23344a}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
-.policylookup label{font-size:12px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
-.policylookup select{width:100%;min-width:0;padding:10px 6px;border:1px solid #d9deea;border-radius:9px;background:white;color:#23344a;font-size:13px}
+.policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
+.policylookup select{width:100%;min-width:0;padding:12px 8px;border:1px solid #d9deea;border-radius:9px;background:white;color:#23344a;font-size:15px}
 .policylookup label:first-child{grid-column:span 2}
 .policyresult{border-radius:12px;background:#f3f6fb;padding:12px;font-size:13px;line-height:1.6;margin-bottom:18px}
 .policyresult p{margin:3px 0}
@@ -517,7 +517,7 @@ function renderCommonSubsidy(root){
  fetch(url).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(data=>{
   if(!root.isConnected)return;
   if(!data?.plans||!data?.models){info.textContent='공통지원금 자료가 아직 연결되지 않았습니다.';return}
-  info.textContent='공통지원금 · '+(data.month||'')+' 기준';
+  info.textContent='공통지원금 · '+(data.month||'')+' 기준';info.classList.add('policydate');
   const clean=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
   const keys=Object.keys(data.models),plans=data.plans;
   const form=document.createElement('div');form.className='policylookup';
@@ -535,15 +535,15 @@ function renderCommonSubsidy(root){
   area.append(form,result);
   const title=document.createElement('h3');title.textContent='T공통지원금 판매 TOP 5';area.append(title);
   const list=document.createElement('div');list.className='policytoplist';area.append(list);
-  for(const [index,item] of (data.top||[]).filter(item=>{const mk=matchModel(item.model),pk=matchPlan(item.plan);return mk&&pk&&data.models[mk]?.[plans.indexOf(pk)]?.some(n=>n!==null)}).entries()){
+  for(const [index,item] of (data.top||[]).entries()){
    const card=document.createElement('article');card.className='salescompactcard';
    const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model;
-   const desc=document.createElement('p');desc.textContent='대표 요금제: '+item.plan;
-   card.append(name,desc);
-   const mk=matchModel(item.model),pk=matchPlan(item.plan);
-   if(mk&&pk){const values=data.models[mk]?.[plans.indexOf(pk)];const grid=document.createElement('div');grid.className='policyamounts';for(const [j,t] of ['010','MNP','기변'].entries()){const cell=document.createElement('div');const label=document.createElement('small');label.textContent=t;const amount=document.createElement('strong');amount.textContent=money(values?.[j]);cell.append(label,amount);grid.append(cell)}card.append(grid)}
-   else{const missing=document.createElement('p');missing.className='note';missing.textContent='지원금 자료 없음';card.append(missing)}
-   list.append(card);
+   const desc=document.createElement('p');desc.textContent='실제 판매 요금제: '+item.plan;
+   const amount=document.createElement('div');amount.className='policytopamount';
+   const typeLabel=document.createElement('span');typeLabel.textContent='최다 판매 유형 · '+(item.type||'');
+   const amountLabel=document.createElement('strong');amountLabel.textContent=money(item.amount);
+   amount.append(typeLabel,amountLabel);
+   card.append(name,desc,amount);list.append(card);
   }
   if(!data.top?.length){const empty=document.createElement('p');empty.className='note';empty.textContent='이번 달 T지원금약정 판매 내역이 없습니다.';list.append(empty)}
  }).catch(()=>{if(root.isConnected)info.textContent='공통지원금 데이터를 읽지 못했습니다. 시트 동기화와 공개 읽기 권한을 확인해주세요.'});
@@ -554,10 +554,10 @@ function renderPolicySection(root,id,title){
  const h=document.createElement('h2');h.textContent=title;
  const note=document.createElement('p');note.className='note';note.textContent='세부 정책 자료는 준비 중입니다.';
  if(id==='common'){
-  const crumb=document.createElement('div');crumb.className='policybreadcrumb';
-  const home=document.createElement('button');home.type='button';home.textContent='홈';home.onclick=()=>render('products');
-  const policy=document.createElement('button');policy.type='button';policy.textContent='정책';policy.onclick=()=>render('policy');
-  const current=document.createElement('strong');current.textContent='공통지원금';crumb.append(home,' › ',policy,' › ',current);root.append(crumb);
+  const pageTitle=$('mobilePageTitle');pageTitle.replaceChildren();
+  const parent=document.createElement('button');parent.type='button';parent.className='policyheaderlink';parent.textContent='정책';parent.onclick=()=>render('policy');
+  const current=document.createElement('span');current.textContent=' › 공통지원금';
+  pageTitle.append(parent,current);
   renderCommonSubsidy(root);
  }else root.append(back,h,note);
 }
