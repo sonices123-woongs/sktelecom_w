@@ -27,7 +27,7 @@ function buildSalesPayload_(values,display,timezone){
  const now=Date.now(),all={updatedAt:now,rows:{}},byStore={};let count=0;
  for(let i=1;i<values.length;i++){
   const v=values[i],d=display[i];if(!d.some(x=>salesColumn_(x)))continue;
-  if(d.some(x=>/^#(REF!|VALUE!|N\/A|NAME\?|DIV\/0!|NUM!|SPILL!)/.test(salesColumn_(x))))throw new Error((i+1)+'행에 수식 오류가 있습니다. 기존 자료를 유지했습니다.');
+  if(d.some(x=>['#REF!','#VALUE!','#N/A','#NAME?','#DIV/0!','#NUM!','#SPILL!'].some(error=>salesColumn_(x).startsWith(error))))throw new Error((i+1)+'행에 수식 오류가 있습니다. 기존 자료를 유지했습니다.');
   const code=salesColumn_(d[13]).toUpperCase();
   if(!/^[PD][A-Z0-9]{5,20}$/.test(code))throw new Error((i+1)+'행 N열 정산매장코드를 확인해주세요. 기존 자료를 유지했습니다.');
   const row={storeCode:code,saleType:salesColumn_(d[3])};
