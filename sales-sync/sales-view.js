@@ -24,22 +24,27 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  let activeDialog=null;
  const filterValues={date:[],activation:[],staff:[],seller:[]};
  const basisNodes=[...document.querySelectorAll('.mobilepagebar,.workspacehead .sectiontop')].map(parent=>{const n=el('span');n.className='salesbasis';parent.append(n);return n});
- function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'날짜',activation:'개통정보',staff:'담당',seller:'판매처'}[key];n.textContent=!picked.length?label:picked.length===1?picked[0]:picked[0]+' 외 '+(picked.length-1);n.title=picked.join(', ')||'전체'}
+ function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'날짜',activation:'유형',staff:'담당',seller:'판매처'}[key];n.textContent=!picked.length?label:picked.length===1?picked[0]:picked[0]+' 외 '+(picked.length-1);n.title=picked.join(', ')||'전체'}
  function openChoices(key,label){
   activeDialog?.remove();const dialog=el('dialog');activeDialog=dialog;dialog.className='salesfilterdialog';const title=el('h2',label+' 선택');const list=el('div');list.className='salesfilterlist';dialog.append(title,list);
   function redraw(){list.replaceChildren();for(const [value,text] of [['','전체'],...filterValues[key].map(v=>[v,v])]){const l=el('label'),check=el('input');check.type='checkbox';check.checked=value?f[key].includes(value):!f[key].length;check.onchange=()=>{if(!value)f[key]=[];else if(check.checked)f[key]=[...f[key],value];else f[key]=f[key].filter(v=>v!==value);if(key==='staff')choices('seller','seller',sellerOptions(rows,f.staff));summary(key);page=1;paint();redraw()};l.append(check,document.createTextNode(text));list.append(l)}}
   redraw();const done=el('button','선택 완료');done.className='quiet';done.onclick=()=>dialog.close();dialog.append(done);dialog.onclose=()=>{dialog.remove();if(activeDialog===dialog)activeDialog=null};document.body.append(dialog);dialog.showModal();
  }
  function field(key,label,type){const l=el('label'),n=el(type==='select'?'button':'input');l.setAttribute('aria-label',label);if(type==='select'){n.type='button';n.className='salesselect';n.setAttribute('aria-label',label+' 다중 선택');n.setAttribute('aria-haspopup','dialog');n.onclick=()=>openChoices(key,label);n.textContent=label}else{n.type=type;n.oninput=()=>{f[key]=n.value;page=1;paint()}}l.append(n);controls.append(l);inputs[key]=n;return n}
- field('date','날짜','select');field('activation','개통정보','select');field('staff','담당','select');field('seller','판매처','select');
+ field('date','날짜','select');field('activation','유형','select');field('staff','담당','select');field('seller','판매처','select');
  const searchline=el('div');searchline.className='salessearchline';
 const model=field('model','모델명','search');model.setAttribute('aria-label','모델명 검색');model.placeholder='모델명 3자 이상 검색';model.autocomplete='off';searchline.append(model.parentElement);
  const reset=el('button','필터 초기화');reset.className='quiet salesreset';reset.onclick=()=>{for(const key of ['date','activation','staff','seller']){f[key]=[];summary(key)}f.model='';inputs.model.value='';choices('seller','seller',sellerOptions(rows,''));page=1;paint()};searchline.append(reset);
  root.append(controls,searchline,status,wrap,pager);
+ const updateFilterHeight=()=>root.style.setProperty('--sales-filter-height',controls.getBoundingClientRect().height+'px');
+ const filterObserver=typeof ResizeObserver!=='undefined'?new ResizeObserver(updateFilterHeight):null;
+ filterObserver?.observe(controls);
+ requestAnimationFrame(updateFilterHeight);
  const cardStyle=el('style');cardStyle.textContent=`
  .salestable:has(.salescardlist){max-height:none;overflow:visible;border:0;background:transparent;margin-bottom:12px}
  .salescardlist{display:grid;gap:9px}
- .salessearchline{position:sticky;top:122px;z-index:29;background:#f6f7f9;padding:8px 0;box-shadow:0 2px 5px rgba(20,35,60,.08)}
+ .salesfilters{position:sticky;top:122px;z-index:29;background:#f6f7f9;padding:8px 0 4px;margin-bottom:0!important}
+ .salessearchline{position:sticky;top:calc(122px + var(--sales-filter-height, 110px));z-index:29;background:#f6f7f9;padding:4px 0 8px;box-shadow:0 2px 5px rgba(20,35,60,.08)}
  .salescompactcard{padding:12px 13px;border:1px solid #dfe5ee;border-radius:13px;background:#fff;min-width:0}
  .salescardtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}
  .salescardmodel{display:flex;align-items:baseline;gap:9px;min-width:0}
@@ -95,7 +100,7 @@ const model=field('model','모델명','search');model.setAttribute('aria-label',
   if(!filtered){if(selected.length>30){const hint=el('p','처음 30건만 표시합니다. 검색·필터로 전체 자료를 조회하세요.');hint.className='initialhint';pager.append(hint)}return}
   for(const [label,step] of [['← 이전',-1],['다음 →',1]]){const b=el('button',label);b.className='quiet';b.disabled=step<0?page===1:page===pages;b.onclick=()=>{page+=step;paint()};pager.append(b);if(step<0)pager.append(el('span',page+' / '+pages))}
  }
- if(!db||!dbApi){status.textContent='판매 데이터 연결을 준비하고 있습니다. 잠시 후 판매 메뉴를 다시 열어주세요.';return ()=>{dead=true;activeDialog?.remove();basisNodes.forEach(n=>n.remove())}}
+ if(!db||!dbApi){status.textContent='판매 데이터 연결을 준비하고 있습니다. 잠시 후 판매 메뉴를 다시 열어주세요.';return ()=>{dead=true;filterObserver?.disconnect();activeDialog?.remove();basisNodes.forEach(n=>n.remove())}}
  const stop=dbApi.onValue(dbApi.ref(db,'sales/'+scope),snap=>{if(dead)return;const data=snap.val();rows=Object.values(data?.rows||{}).sort((a,b)=>(b.date+' '+b.time).localeCompare(a.date+' '+a.time));updatedAt=data?.updatedAt||0;loaded=true;choices('date','date');choices('activation','activation');choices('staff','staff');choices('seller','seller',sellerOptions(rows,f.staff));paint()},()=>{if(dead)return;rows=[];wrap.replaceChildren();pager.replaceChildren();status.textContent='판매 자료를 읽지 못했습니다. 관리자에게 판매 권한과 판매 데이터 보안 규칙을 확인해주세요.'});
- return ()=>{dead=true;rows=[];activeDialog?.remove();basisNodes.forEach(n=>n.remove());stop();wrap.replaceChildren()};
+ return ()=>{dead=true;rows=[];filterObserver?.disconnect();activeDialog?.remove();basisNodes.forEach(n=>n.remove());stop();wrap.replaceChildren()};
 }
