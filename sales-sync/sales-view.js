@@ -24,14 +24,14 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  let activeDialog=null;
  const filterValues={date:[],activation:[],staff:[],seller:[]};
  const basisNodes=[...document.querySelectorAll('.mobilepagebar,.workspacehead .sectiontop')].map(parent=>{const n=el('span');n.className='salesbasis';parent.append(n);return n});
- function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'날짜',activation:'유형',staff:'담당',seller:'판매처'}[key];n.textContent=!picked.length?label:picked.length===1?picked[0]:picked[0]+' 외 '+(picked.length-1);n.title=picked.join(', ')||'전체'}
+ function summary(key){const n=inputs[key];if(!n)return;const picked=f[key],label={date:'개통일',activation:'유형',staff:'담당',seller:'판매처'}[key];n.textContent=key==='date'?'개통일':!picked.length?label:picked.length===1?picked[0]:picked[0]+' 외 '+(picked.length-1);n.title=picked.join(', ')||'전체'}
  function openChoices(key,label){
   activeDialog?.remove();const dialog=el('dialog');activeDialog=dialog;dialog.className='salesfilterdialog';const title=el('h2',label+' 선택');const list=el('div');list.className='salesfilterlist';dialog.append(title,list);
   function redraw(){list.replaceChildren();for(const [value,text] of [['','전체'],...filterValues[key].map(v=>[v,v])]){const l=el('label'),check=el('input');check.type='checkbox';check.checked=value?f[key].includes(value):!f[key].length;check.onchange=()=>{if(!value)f[key]=[];else if(check.checked)f[key]=[...f[key],value];else f[key]=f[key].filter(v=>v!==value);if(key==='staff')choices('seller','seller',sellerOptions(rows,f.staff));summary(key);page=1;paint();redraw()};l.append(check,document.createTextNode(text));list.append(l)}}
   redraw();const done=el('button','선택 완료');done.className='quiet';done.onclick=()=>dialog.close();dialog.append(done);dialog.onclose=()=>{dialog.remove();if(activeDialog===dialog)activeDialog=null};document.body.append(dialog);dialog.showModal();
  }
  function field(key,label,type){const l=el('label'),n=el(type==='select'?'button':'input');l.setAttribute('aria-label',label);if(type==='select'){n.type='button';n.className='salesselect';n.setAttribute('aria-label',label+' 다중 선택');n.setAttribute('aria-haspopup','dialog');n.onclick=()=>openChoices(key,label);n.textContent=label}else{n.type=type;n.oninput=()=>{f[key]=n.value;page=1;paint()}}l.append(n);controls.append(l);inputs[key]=n;return n}
- field('date','날짜','select');field('activation','유형','select');field('staff','담당','select');field('seller','판매처','select');
+ field('date','개통일','select');field('activation','유형','select');field('staff','담당','select');field('seller','판매처','select');
  const searchline=el('div');searchline.className='salessearchline';
 const model=field('model','모델명','search');model.setAttribute('aria-label','모델명 검색');model.placeholder='모델명 3자 이상 검색';model.autocomplete='off';searchline.append(model.parentElement);
  const reset=el('button','필터 초기화');reset.className='quiet salesreset';reset.onclick=()=>{for(const key of ['date','activation','staff','seller']){f[key]=[];summary(key)}f.model='';inputs.model.value='';choices('seller','seller',sellerOptions(rows,''));page=1;paint()};searchline.append(reset);
