@@ -2,7 +2,8 @@ const SALES_OWNER = 'sonices123@gmail.com';
 const SALES_DB = 'https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app';
 const SALES_TAB = '판매원본';
 // 선택한 열만 전송합니다. 고객 이름/전화번호 등 원본의 나머지 열은 전송하지 않습니다.
-const SALES_COLUMNS = {date:1,time:2,activation:14,contract:15,payment:19,model:22,color:23,serial:24,plan:28,price:46,installment:49,subsidy:54,extra:56,card:70,staff:81,seller:89};
+const SALES_HEADERS=['개통일','개통시간','단말기정보_단말기','개통정보_세부판매유형','개통정보_유통망','단말기정보_단말기결제조건','요금제','단말할부금','공통지원금','추가지원금','제휴카드선할인','레벨2조직명','정산처','정산매장코드'];
+const SALES_COLUMNS={date:1,time:2,model:3,activation:4,contract:5,payment:6,plan:7,installment:8,subsidy:9,extra:10,card:11,staff:12,seller:13};
 function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
@@ -22,14 +23,15 @@ function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){c
 function salesColumn_(v){return String(v==null?'':v).trim()}
 function buildSalesPayload_(values,display,timezone){
  if(values.length<2)throw new Error('원본이 비어 있어 기존 판매 자료를 유지했습니다. 제목과 판매 데이터를 붙여넣어주세요.');
- if(!/개통일/.test(salesColumn_(display[0][0]))||!/코드/.test(salesColumn_(display[0][10])))throw new Error('원본 열 위치가 다릅니다. A열 개통일, K열 판매매장코드를 확인해주세요.');
+ if(!SALES_HEADERS.every((name,j)=>salesColumn_(display[0][j])===name))throw new Error('판매원본 A1:N1 제목이 새 14개 항목과 다릅니다. 제목과 순서를 확인해주세요.');
  const now=Date.now(),all={updatedAt:now,rows:{}},byStore={};let count=0;
  for(let i=1;i<values.length;i++){
   const v=values[i],d=display[i];if(!d.some(x=>salesColumn_(x)))continue;
-  const code=salesColumn_(d[10]).toUpperCase();
-  if(!/^[PD][A-Z0-9]{5,20}$/.test(code))throw new Error((i+1)+'행 K열 판매매장코드를 확인해주세요. 기존 자료를 유지했습니다.');
-  const row={storeCode:code,saleType:salesColumn_(d[7])};
-  for(const key in SALES_COLUMNS){const j=SALES_COLUMNS[key]-1;row[key]=salesColumn_(d[j]);if(['price','installment','subsidy','extra'].includes(key)&&typeof v[j]==='number')row[key]=v[j];}
+  if(d.some(x=>/^#(REF!|VALUE!|N\\/A|NAME\\?|DIV\\/0!|NUM!|SPILL!)/.test(salesColumn_(x))))throw new Error((i+1)+'행에 수식 오류가 있습니다. 기존 자료를 유지했습니다.');
+  const code=salesColumn_(d[13]).toUpperCase();
+  if(!/^[PD][A-Z0-9]{5,20}$/.test(code))throw new Error((i+1)+'행 N열 정산매장코드를 확인해주세요. 기존 자료를 유지했습니다.');
+  const row={storeCode:code,saleType:salesColumn_(d[3])};
+  for(const key in SALES_COLUMNS){const j=SALES_COLUMNS[key]-1;row[key]=salesColumn_(d[j]);if(['installment','subsidy','extra','card'].includes(key)&&typeof v[j]==='number')row[key]=v[j];}
   if(v[0] instanceof Date)row.date=Utilities.formatDate(v[0],timezone,'yyyy-MM-dd');
   else {const match=row.date.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);if(match)row.date=match[1]+'-'+match[2].padStart(2,'0')+'-'+match[3].padStart(2,'0');}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(row.date))throw new Error((i+1)+'행 개통일 형식을 확인해주세요.');
@@ -48,8 +50,8 @@ function syncSalesNow(){
   const id=PropertiesService.getScriptProperties().getProperty('SALES_SHEET_ID');
   const book=id?SpreadsheetApp.openById(id):SpreadsheetApp.getActiveSpreadsheet(),sheet=book.getSheetByName(SALES_TAB);
   if(!sheet)throw new Error('판매원본 탭이 없습니다.');
-  if(sheet.getLastColumn()<89)throw new Error('CK열까지 원본을 붙여넣어주세요.');
-  const range=sheet.getRange(1,1,sheet.getLastRow(),89),payload=buildSalesPayload_(range.getValues(),range.getDisplayValues(),book.getSpreadsheetTimeZone());
+  if(sheet.getLastColumn()<14)throw new Error('N열 정산매장코드까지 붙여넣어주세요.');
+  const range=sheet.getRange(1,1,sheet.getLastRow(),14),payload=buildSalesPayload_(range.getValues(),range.getDisplayValues(),book.getSpreadsheetTimeZone());
   console.log('3/5 Firebase에 판매 '+Object.keys(payload.all.rows).length+'건 전송');
   const response=UrlFetchApp.fetch(SALES_DB+'/sales.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
   if(response.getResponseCode()!==200)throw new Error('Firebase 반영 실패 ('+response.getResponseCode()+'). 연결 프로젝트와 소유자 권한을 확인해주세요.');
