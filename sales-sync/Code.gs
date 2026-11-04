@@ -117,7 +117,7 @@ function syncCommonSubsidyNow(){
  for(let c=1;c+2<data[0].length;c+=3){
   const name=String(data[0][c]||'').trim().replace(/\\n/g,' ');
   if(!name)continue;
-  if(!['010','MNP','기변'].every((v,j)=>String(data[1][c+j]||'').trim()===v))throw new Error('공통지원금 '+(c+1)+'열의 010/MNP/기변 헤더를 확인해주세요.');
+  if(!['010','MNP','기변'].every((v,j)=>{const cell=String(data[1][c+j]||'').trim();return j===0?(cell==='010'||cell==='10'):cell===v}))throw new Error('공통지원금 '+(c+1)+'열의 010/MNP/기변 헤더를 확인해주세요.');
   plans.push(name);columns.push(c);
  }
  if(!plans.length)throw new Error('요금제 헤더가 없습니다.');
