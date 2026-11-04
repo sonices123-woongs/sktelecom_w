@@ -143,7 +143,15 @@ function syncCommonSubsidyNow(){
   stats[model].count++;
   stats[model].plans[plan]=(stats[model].plans[plan]||0)+1;
  }
- const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).slice(0,5).map(([model,v])=>({model,count:v.count,plan:Object.entries(v.plans).sort((a,b)=>b[1]-a[1])[0]?.[0]||''}));
+ const normalize_=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
+ const modelKeys=Object.keys(models);
+ const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).map(([model,v])=>{
+  const matchingModel=modelKeys.find(k=>normalize_(k)===normalize_(model));
+  if(!matchingModel)return null;
+  const matchedPlan=Object.entries(v.plans).sort((a,b)=>b[1]-a[1]).map(([name])=>plans.find(p=>normalize_(p)===normalize_(name))||plans.find(p=>normalize_(p).includes(normalize_(name))||normalize_(name).includes(normalize_(p)))).find(p=>p&&models[matchingModel][plans.indexOf(p)]?.some(n=>n!==null));
+  if(!matchedPlan)return null;
+  return {model:matchingModel,count:v.count,plan:matchedPlan};
+ }).filter(Boolean).slice(0,5);
  const payload={updatedAt:Date.now(),month:now,plans,models,top};
  const response=UrlFetchApp.fetch(SALES_DB+'/publicPolicy/commonSubsidy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('공통지원금 Firebase 반영 실패 ('+response.getResponseCode()+')');
