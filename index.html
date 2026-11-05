@@ -310,6 +310,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyretailmeta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:8px 0 14px!important;font-size:12px}.policyretailissue{background:#eaf0fa;color:#24446d;border-radius:7px;padding:6px 10px;font-weight:700}.policyretaildate{color:#64748b;font-weight:500}.policytoparea .salescompactcard{padding-bottom:12px}
 .workspaceoperation{border:1px solid #d6e0ee;border-radius:12px;background:#f7f9fd;padding:14px;margin:0 0 15px}.workspaceoperation>strong{font-size:16px}.workspaceoperation .note{margin:8px 0}.workspaceoperationbuttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.workspaceoperationbuttons button{padding:11px;border:1px solid #bdcde0;border-radius:9px;background:#fff;font-weight:700}.workspaceoperationbuttons button.active{background:#203e6b;color:#fff}.workspaceoperationbuttons button:disabled:not(.active){opacity:.55}
 .retailnoticebox{border:1px solid #e4d3b9;border-radius:12px;background:#fffaf2;padding:12px 13px;margin:0 0 14px}.retailnoticeheader{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#5c3d21}.retailnoticebadge{font-size:11px;background:#fff0d3;color:#9b4e16;border-radius:5px;padding:3px 7px}.retailnoticebox p{font-size:12px;color:#775f4b;margin:7px 0 10px}.retailnoticeopen{border:1px solid #d5b895;background:#fff;color:#7b451d;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px}.retailnoticedialog{width:min(92vw,470px);max-height:82vh;border:0;border-radius:15px;padding:18px;background:#fff;color:#1d2939;box-shadow:0 12px 48px #0003}.retailnoticedialog::backdrop{background:#17243c99}.retailnoticedialog h3{font-size:18px;margin:0 0 14px}.retailnoticebody{overflow:auto;max-height:58vh}.retailnoticeitem{border-bottom:1px solid #e4e9f0;padding:15px 0}.retailnoticeitem:first-child{padding-top:3px}.retailnoticeitem:last-child{border-bottom:0}.retailnoticeparagraph{font-size:14px!important;line-height:1.85!important;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px!important;color:#293b53;word-break:keep-all}.retailnoticeparagraph:last-child{margin-bottom:0!important}.retailnoticehighlight{font-weight:650;color:#24456e!important;background:#f2f6fc;border-left:3px solid #6384b6;border-radius:4px;padding:9px 10px}.retailnoticebullet{padding-left:11px;text-indent:-9px}.retailnoticeclose{display:block;width:100%;margin-top:15px;border:0;border-radius:9px;background:#223e67;color:#fff;font-weight:700;padding:12px}
+.policyretailsticky{position:sticky;top:118px;z-index:25;background:#f6f7f9;padding:7px 0 10px;margin-bottom:10px;border-bottom:1px solid #e1e6ee}.policyretailsticky .policyretailmeta{margin:0 0 9px!important}.policyretailsticky .policyretailmodelrow{margin:0 0 7px}.policyretailsticky .policyretailplanrow{margin:0!important}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -710,7 +711,7 @@ function renderCommonSubsidy(root){
 function renderRetailPolicy(root){
  const info=document.createElement('p');info.className='note';info.textContent='소매단가표를 불러오는 중…';root.append(info);
  if(isWorkspaceGuest()||mode!=='member'||!currentUser||!canUseMenu('policy')){info.textContent='로그인 및 정책 조회 권한이 필요합니다.';return}
- const holder=document.createElement('div');root.append(holder);
+ const holder=document.createElement('div');root.append(holder);const sticky=document.createElement('div');sticky.className='policyretailsticky';holder.append(sticky);
  const db='https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app';
  const money=v=>v==null?'자료 없음':Number(v).toLocaleString('ko-KR')+'원';
  const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
@@ -718,16 +719,16 @@ function renderRetailPolicy(root){
  Promise.all([currentUser.getIdToken().then(token=>fetch(db+'/retailPolicy.json?auth='+encodeURIComponent(token)).then(r=>{if(!r.ok)throw Error('권한 오류 '+r.status);return r.json()})),fetch(db+'/publicPolicy/commonSubsidy.json').then(r=>r.ok?r.json():null)]).then(([data,subsidy])=>{
   if(!root.isConnected)return;
   if(!data?.models){info.textContent='소매정책 자료가 아직 반영되지 않았습니다. 시트 동기화를 확인해주세요.';return}
-  info.textContent='';info.className='policyretailmeta';const issue=document.createElement('span');issue.className='policyretailissue';issue.textContent='정책 '+(data.issue||'호수 미확인');const date=document.createElement('span');date.className='policyretaildate';date.textContent='적용일 · '+(data.effectiveDate||'미확인');info.append(issue,date);
-  const notices=(data.notices||[]).filter(n=>n&&n.text);
+  info.textContent='';info.className='policyretailmeta';const issue=document.createElement('span');issue.className='policyretailissue';issue.textContent='정책 '+(data.issue||'호수 미확인');const date=document.createElement('span');date.className='policyretaildate';date.textContent='적용일 · '+(data.effectiveDate||'미확인');info.append(issue,date);sticky.append(info);
+  const notices=(data.notices||[]).filter(n=>n&&n.text);let noticeBox=null;
   if(notices.length){
-   const noticeBox=document.createElement('section');noticeBox.className='retailnoticebox';
+   noticeBox=document.createElement('section');noticeBox.className='retailnoticebox';
    const header=document.createElement('div');header.className='retailnoticeheader';
    const label=document.createElement('strong');label.textContent='📢 주요 정책 안내';
    const mark=document.createElement('span');mark.className='retailnoticebadge';mark.textContent='필독';header.append(label,mark);
    const brief=document.createElement('p');brief.textContent='정책 변경사항과 지급 유의사항을 확인해 주세요.';
    const open=document.createElement('button');open.type='button';open.textContent='전체 안내 보기';open.className='retailnoticeopen';
-   noticeBox.append(header,brief,open);root.append(noticeBox);
+   noticeBox.append(header,brief,open);
    const dialog=document.createElement('dialog');dialog.className='retailnoticedialog';
    const dialogTitle=document.createElement('h3');dialogTitle.textContent='주요 정책 안내 · '+(data.issue||'');
    const dialogBody=document.createElement('div');dialogBody.className='retailnoticebody';
@@ -772,7 +773,7 @@ function renderRetailPolicy(root){
    planFilter.value=matches.some(p=>p.name===selected)?selected:'';
   }
   updatePlanOptions();
-  filters.append(plan,planFilter);holder.append(modelRow,filters);
+  filters.append(plan,planFilter);sticky.append(modelRow,filters);
   const planHint=document.createElement('p');planHint.className='note';holder.append(planHint);
   const results=document.createElement('div');holder.append(results);
   const top=document.createElement('section');top.className='policytoparea';const h=document.createElement('h3');h.textContent='이번 달 판매 TOP 5';top.append(h);
@@ -784,7 +785,7 @@ function renderRetailPolicy(root){
    card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';plan.value=item.plan;updatePlanOptions();planFilter.value=planItems.some(p=>p.name===item.plan)?item.plan:'';refresh();window.scrollTo({top:0,behavior:'smooth'})};
   }
   if(!data.top?.length){const p=document.createElement('p');p.className='note';p.textContent='이번 달 일치하는 판매 자료가 없습니다.';top.append(p)}
-  holder.append(top);
+  holder.append(top);if(noticeBox)holder.append(noticeBox);
   const family=v=>norm(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   function refresh(){
    const q=norm(search.value),planQuery=norm(plan.value),selectedPlan=planFilter.value?planItems.find(p=>p.name===planFilter.value):null,matchingPlans=selectedPlan?[selectedPlan]:planQuery?planItems.filter(p=>norm(p.name).includes(planQuery)):[];const chosen=matchingPlans.length===1?matchingPlans[0]:null;planHint.textContent=chosen?'지급구간: '+(chosen.group==='기본'?'기본구간':chosen.group+'구간')+' · '+chosen.name:matchingPlans.length>1?'일치하는 요금제 '+matchingPlans.length+'개 · 요금제를 더 입력하거나 선택해 주세요':planQuery||planFilter.value?'일치하는 요금제가 없습니다.':'';const active=!!(q||modelFilter.value||planQuery||planFilter.value);top.hidden=active;results.replaceChildren();if(!active)return;
