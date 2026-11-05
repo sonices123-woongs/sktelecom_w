@@ -303,6 +303,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policy-model-price{font-size:12px;font-weight:400;color:#6b778b;white-space:nowrap;margin-left:auto;margin-right:14px}
 .policyvariant>summary.policyresultmodel:after{flex:none}
  .policyretailsearch{width:100%;padding:13px;border:1px solid #d5dfec;border-radius:10px;margin:8px 0;font-size:15px}.policyretailfilters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}.policyretailfilters select{min-width:0;padding:10px 5px;border:1px solid #d5dfec;border-radius:8px;background:#fff}.policyretailfilters select:last-child{grid-column:span 2}.policyretailcontract{margin:12px 0}.policyretailcontract>h4{font-size:15px;margin:12px 0 8px}
+.policyretailfilters{display:block!important}.policyretailgroup{margin:0 0 8px}.policyretailfilters .policyretailsearch{margin:0 0 12px}.policyretailtabs{display:flex;gap:7px;margin:12px 0}.policyretailtabs button{flex:1;border:1px solid #d6dfed;background:#f1f4f8;color:#8793a6;border-radius:9px;padding:11px 5px;font-size:13px;font-weight:600}.policyretailtabs button.active{background:#fff;color:#152f55;border-color:#7b99c9;box-shadow:0 1px 3px #00000010}.policyretailcontract[hidden]{display:none!important}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -684,12 +685,17 @@ function renderRetailPolicy(root){
   info.textContent='소매단가표 · '+(data.issue||'')+' · '+(data.effectiveDate||'')+' 적용';
   const search=document.createElement('input');search.type='search';search.placeholder='모델명 검색 (예: S942, IP18P)';search.setAttribute('aria-label','모델명 검색');search.className='policyretailsearch';
   const filters=document.createElement('div');filters.className='policyretailfilters';
-  const contract=document.createElement('select');[['','약정 전체'],['common','공통지원금 약정'],['choice','선택약정']].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;contract.append(o)});
-  const group=document.createElement('select');[['','요금제 구간 전체'],...(data.groups||[]).map(g=>[g.key,g.key==='기본'?'기본구간':g.key+'구간'])].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;group.append(o)});
-  const plan=document.createElement('select');plan.setAttribute('aria-label','대표 요금제 선택');
+  const selectedGroups=new Set();
+  const group=document.createElement('details');group.className='policymultiselect policyretailgroup';
+  const groupTitle=document.createElement('summary');groupTitle.textContent='요금제 구간 전체';group.append(groupTitle);
+  const options=document.createElement('div');options.className='policymultioptions';
+  const clear=document.createElement('button');clear.type='button';clear.className='policymulticlear';clear.textContent='전체 선택 해제';clear.onclick=()=>{selectedGroups.clear();options.querySelectorAll('input').forEach(el=>el.checked=false);updateGroup();refresh()};options.append(clear);
+  for(const g of data.groups||[]){const label=document.createElement('label');label.className='policymultirow';const input=document.createElement('input');input.type='checkbox';input.value=g.key;input.onchange=()=>{if(input.checked)selectedGroups.add(g.key);else selectedGroups.delete(g.key);updateGroup();refresh()};const span=document.createElement('span');span.textContent=g.key==='기본'?'기본구간':g.key+'구간';label.append(input,span);options.append(label)}
+  group.append(options);
+  function updateGroup(){groupTitle.textContent=selectedGroups.size?'요금제 구간 '+selectedGroups.size+'개 선택':'요금제 구간 전체'}
+  const plan=document.createElement('input');plan.type='search';plan.placeholder='요금제명 검색 (선택사항)';plan.setAttribute('aria-label','요금제명 검색');plan.className='policyretailsearch';
   const planItems=Object.values(data.plans||{}).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-  [['','요금제 선택 (선택사항)'],...planItems.map(p=>[p.name,p.name])].forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;plan.append(o)});
-  filters.append(contract,group,plan);holder.append(search,filters);
+  filters.append(group,plan);holder.append(search,filters);
   const results=document.createElement('div');holder.append(results);
   const top=document.createElement('section');top.className='policytoparea';const h=document.createElement('h3');h.textContent='이번 달 판매 TOP 5 · 소매 인센티브';top.append(h);
   for(const [i,item] of (data.top||[]).entries()){
@@ -698,13 +704,13 @@ function renderRetailPolicy(root){
    const detail=document.createElement('p');detail.textContent=(item.kind==='choice'?'선택약정':'공통지원금 약정')+' · '+item.plan+' · '+item.group+'구간 · '+item.type;
    const amount=document.createElement('div');amount.className='policytopamount';const count=document.createElement('span');count.textContent='판매 '+item.count+'건';const value=document.createElement('strong');value.textContent=money(item.amount);amount.append(count,value);
    card.append(name,detail,amount);top.append(card);
-   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;contract.value=item.kind;group.value=item.group;plan.value='';refresh();window.scrollTo({top:0,behavior:'smooth'})};
+   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;selectedGroups.clear();options.querySelectorAll('input').forEach(el=>el.checked=false);selectedGroups.add(item.group);options.querySelectorAll('input').forEach(el=>el.checked=el.value===item.group);updateGroup();plan.value=item.plan;refresh();window.scrollTo({top:0,behavior:'smooth'})};
   }
   if(!data.top?.length){const p=document.createElement('p');p.className='note';p.textContent='이번 달 일치하는 판매 자료가 없습니다.';top.append(p)}
   holder.append(top);
   const family=v=>norm(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   function refresh(){
-   const q=norm(search.value),active=!!(q||contract.value||group.value||plan.value);top.hidden=active;results.replaceChildren();if(!active)return;
+   const q=norm(search.value),active=!!(q||selectedGroups.size||plan.value);top.hidden=active;results.replaceChildren();if(!active)return;
    if(!q){const p=document.createElement('p');p.className='note';p.textContent='모델명을 입력하면 소매 인센티브를 조회할 수 있습니다.';results.append(p);return}
    const names=Object.keys(data.models).filter(n=>norm(n).includes(q)).sort((a,b)=>family(a).localeCompare(family(b),'ko')||a.localeCompare(b,'ko',{numeric:true})).slice(0,30);
    if(!names.length){results.textContent='검색 결과가 없습니다.';return}
@@ -717,17 +723,22 @@ function renderRetailPolicy(root){
     const price=document.createElement('span');price.className='policy-model-price';price.textContent='출고가 '+money(model.price);
     head.append(label,price);wrap.append(head);
     const content=document.createElement('div');content.className='policyvariantcontent';wrap.append(content);results.append(wrap);
-    for(const kind of ['common','choice']){
-     if(contract.value&&contract.value!==kind||!model.contracts?.[kind])continue;
-     const section=document.createElement('section');section.className='policyretailcontract';
-     const title=document.createElement('h4');title.textContent=kind==='common'?'공통지원금 약정':'선택약정';section.append(title);
+    const tabs=document.createElement('div');tabs.className='policyretailtabs';content.append(tabs);
+    const sections={};
+    const available=['common','choice'].filter(k=>!!model.contracts?.[k]);
+    let selectedContract='common';
+    for(const kind of available){
+     const button=document.createElement('button');button.type='button';button.textContent=kind==='common'?'공통지원금 약정':'선택약정';
+     button.onclick=()=>{selectedContract=kind;switchContract()};tabs.append(button);
+     const section=document.createElement('section');section.className='policyretailcontract';sections[kind]=section;content.append(section);
      for(const g of data.groups||[]){
-      if(group.value&&group.value!==g.key)continue;
-      const chosen=plan.value?planItems.find(p=>p.name===plan.value):null;
-      if(chosen&&chosen.group!==g.key)continue;
+      if(selectedGroups.size&&!selectedGroups.has(g.key))continue;
+      const matchingPlans=plan.value?planItems.filter(p=>norm(p.name).includes(norm(plan.value))):[];
+      const chosen=matchingPlans.length===1?matchingPlans[0]:null;
+      if(plan.value&&!matchingPlans.some(p=>p.group===g.key))continue;
       const values=model.contracts[kind][g.key];if(!values||values.every(v=>v==null))continue;
       const card=document.createElement('div');card.className='policyplancard';
-      const t=document.createElement('h4');t.textContent=(g.key==='기본'?'기본구간':g.key+'구간')+' · '+g.label.replace(/^.*?구간\s*/,'').slice(0,90);card.append(t);
+      const t=document.createElement('h4');t.textContent=g.key==='기본'?'기본구간':g.key+'구간';card.append(t);
       const amounts=document.createElement('div');amounts.className='policyplanamounts';
       types.forEach((type,j)=>{const cell=document.createElement('div');cell.className='policyplancell';const l=document.createElement('span');l.textContent=type;const v=document.createElement('strong');v.textContent=money(values[j]);cell.append(l,v);amounts.append(cell)});card.append(amounts);
       if(chosen){const note=document.createElement('p');note.className='note';note.textContent='선택 요금제: '+chosen.name;card.append(note);
@@ -740,11 +751,13 @@ function renderRetailPolicy(root){
       }
       section.append(card);
      }
-     if(section.children.length>1)content.append(section);
+     if(section.children.length===0)section.textContent='해당 조건의 인센티브가 없습니다.';
     }
+    function switchContract(){[...tabs.children].forEach((button,i)=>{const kind=available[i];button.classList.toggle('active',kind===selectedContract);button.setAttribute('aria-pressed',String(kind===selectedContract));sections[kind].hidden=kind!==selectedContract})}
+    if(available.length){selectedContract=available.includes('common')?'common':available[0];switchContract()}
    }
   }
-  [search,contract,group,plan].forEach(el=>el.addEventListener(el===search?'input':'change',()=>{if(plan.value){const p=planItems.find(x=>x.name===plan.value);if(p)group.value=p.group}refresh()}));
+  [search,plan].forEach(el=>el.addEventListener('input',refresh));
   refresh();
  }).catch(e=>{if(root.isConnected)info.textContent='소매단가표 조회 실패: '+e.message+' (Firebase 회원 읽기 권한 확인 필요)'});
 }
