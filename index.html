@@ -687,7 +687,7 @@ function renderRetailPolicy(root){
   const search=document.createElement('input');search.type='search';search.placeholder='모델명 검색 (예: S942, IP18P)';search.setAttribute('aria-label','모델명 검색');search.className='policyretailsearch';
   const modelRow=document.createElement('div');modelRow.className='policyretailmodelrow';
   const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
-  const modelOptions=[['','모델 선택'],...Object.keys(data.models).sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).map(name=>[name,name])];
+  const ranked=(data.salesRanking?.length?data.salesRanking:data.top||[]).map(x=>x.model);const modelOptions=[['','모델 선택'],...Object.keys(data.models).sort((a,b)=>{const ra=ranked.indexOf(a),rb=ranked.indexOf(b);return (ra<0?999999:ra)-(rb<0?999999:rb)||a.localeCompare(b,'ko',{numeric:true})}).map(name=>[name,name])];
   for(const [value,label] of modelOptions){const option=document.createElement('option');option.value=value;option.textContent=label;modelFilter.append(option)}
   modelRow.append(search,modelFilter);
   const filters=document.createElement('div');filters.className='policyretailfilters';
@@ -698,6 +698,8 @@ function renderRetailPolicy(root){
   const clear=document.createElement('button');clear.type='button';clear.className='policymulticlear';clear.textContent='전체 선택 해제';clear.onclick=()=>{selectedGroups.clear();options.querySelectorAll('input').forEach(el=>el.checked=false);updateGroup();refresh()};options.append(clear);
   for(const g of data.groups||[]){const label=document.createElement('label');label.className='policymultirow';const input=document.createElement('input');input.type='checkbox';input.value=g.key;input.onchange=()=>{if(input.checked)selectedGroups.add(g.key);else selectedGroups.delete(g.key);updateGroup();refresh()};const span=document.createElement('span');span.textContent=g.key==='기본'?'기본구간':g.key+'구간';label.append(input,span);options.append(label)}
   group.append(options);
+  document.addEventListener('pointerdown',event=>{if(root.isConnected&&group.open&&!group.contains(event.target))group.open=false},{capture:true});
+  document.addEventListener('keydown',event=>{if(root.isConnected&&group.open&&event.key==='Escape'){group.open=false;groupTitle.focus()}});
   function updateGroup(){groupTitle.textContent=selectedGroups.size?'요금제 구간 '+selectedGroups.size+'개 선택':'요금제 구간 전체'}
   const plan=document.createElement('input');plan.type='search';plan.placeholder='요금제명 검색 (선택사항)';plan.setAttribute('aria-label','요금제명 검색');plan.className='policyretailsearch';
   const planItems=Object.values(data.plans||{}).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
