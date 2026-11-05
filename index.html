@@ -306,6 +306,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyretailfilters{display:block!important}.policyretailgroup{margin:0 0 8px}.policyretailfilters .policyretailsearch{margin:0 0 12px}.policyretailtabs{display:flex;gap:7px;margin:12px 0}.policyretailtabs button{flex:1;border:1px solid #d6dfed;background:#f1f4f8;color:#8793a6;border-radius:9px;padding:11px 5px;font-size:13px;font-weight:600}.policyretailtabs button.active{background:#fff;color:#152f55;border-color:#7b99c9;box-shadow:0 1px 3px #00000010}.policyretailcontract[hidden]{display:none!important}
 .policyretailmodelrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:8px 0}.policyretailmodelrow .policyretailsearch{width:100%;min-width:0;margin:0;padding:12px 9px;font-size:13px}.policyretailmodelrow select{width:100%;min-width:0;border:1px solid #d5dfec;border-radius:10px;background:#fff;padding:10px 7px;font-size:13px;color:#20304a}
 .policyretailplanrow{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:0 0 8px}.policyretailplanrow .policyretailsearch{width:100%;min-width:0;margin:0;padding:12px 9px;font-size:13px}.policyretailplanrow select{width:100%;min-width:0;border:1px solid #d5dfec;border-radius:10px;background:#fff;padding:10px 7px;font-size:13px;color:#20304a}
+.policyretailsubsidy{margin-top:14px;padding-top:12px;border-top:1px solid #e4e9f1}.policyretailsubsidytitle{font-size:14px;font-weight:700;color:#233c60;margin-bottom:10px}.policyretailsubsidyamounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.policyretailsubsidyamounts>div{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;background:#f2f5f9;border-radius:8px;min-width:0}.policyretailsubsidyamounts span{font-size:13px;color:#647995}.policyretailsubsidyamounts strong{font-size:15px;color:#172f50;white-space:nowrap}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -746,14 +747,14 @@ function renderRetailPolicy(root){
       if((planQuery||planFilter.value)&&!matchingPlans.some(p=>p.group===g.key))continue;
       const values=model.contracts[kind][g.key];if(!values||values.every(v=>v==null))continue;
       const card=document.createElement('div');card.className='policyplancard';
-      const t=document.createElement('h4');t.textContent=g.key==='기본'?'기본구간':g.key+'구간';card.append(t);
+      const t=document.createElement('h4');t.textContent=(g.key==='기본'?'기본구간':g.key+'구간')+' 인센티브';card.append(t);
       const amounts=document.createElement('div');amounts.className='policyplanamounts';
       types.forEach((type,j)=>{const cell=document.createElement('div');cell.className='policyplancell';const l=document.createElement('span');l.textContent=type;const v=document.createElement('strong');v.textContent=money(values[j]);cell.append(l,v);amounts.append(cell)});card.append(amounts);
       if(chosen){const note=document.createElement('p');note.className='note';note.textContent='선택 요금제: '+chosen.name;card.append(note);
        if(kind==='common'&&subsidy?.models){
         const matchedModel=Object.keys(subsidy.models).find(n=>norm(n)===norm(name));
         const matchedPlan=(subsidy.plans||[]).findIndex(n=>norm(n)===norm(chosen.name)||norm(String(n).replace(/\([^)]*\)/g,''))===norm(String(chosen.name).replace(/\([^)]*\)/g,'')));
-        if(matchedModel&&matchedPlan>=0){const p=document.createElement('p');p.className='note';p.textContent='해당 요금제 공통지원금 · '+types.map((type,j)=>type+' '+money(subsidy.models[matchedModel][matchedPlan]?.[j])).join(' / ');card.append(p)}
+        if(matchedModel&&matchedPlan>=0){const subsidyBox=document.createElement('div');subsidyBox.className='policyretailsubsidy';const subtitle=document.createElement('div');subtitle.className='policyretailsubsidytitle';subtitle.textContent='해당 요금제 공통지원금';const amountRow=document.createElement('div');amountRow.className='policyretailsubsidyamounts';types.forEach((type,j)=>{const cell=document.createElement('div');const label=document.createElement('span');label.textContent=type;const value=document.createElement('strong');value.textContent=money(subsidy.models[matchedModel][matchedPlan]?.[j]);cell.append(label,value);amountRow.append(cell)});subsidyBox.append(subtitle,amountRow);card.append(subsidyBox)}
         else{const p=document.createElement('p');p.className='note';p.textContent='공통지원금: 해당 요금제·모델의 일치 자료 없음';card.append(p)}
        }
       }
