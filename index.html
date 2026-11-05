@@ -413,7 +413,7 @@ function effectiveAccess(user=currentUser,access=memberAccess){if(!access||!isDe
 let memberAccess=null,accessLoaded=false,activeMenu='products',accessUnsubs=[],memberRequests={},memberRecords={},adminListError='',registerError='';
 function canManageUsers(){return isCardAdmin()||(!!currentUser&&accessLoaded&&memberAccess?.active===true&&memberAccess?.manageUsers===true)}
 let workspaceEnabled=true,workspaceStatusReady=false,workspaceStatusError='',workspaceUnsub=null;
-function isWorkspaceGuest(){return mode==='guest'||(!isCardAdmin()&&workspaceStatusReady&&!workspaceEnabled)}
+function isWorkspaceGuest(){return mode==='guest'||(!isCardAdmin()&&(!workspaceStatusReady||!workspaceEnabled))}
 function canUseMenu(key){if(key==='policy'&&isWorkspaceGuest())return true;if(isWorkspaceGuest())return key==='products'||key==='policy';if(mode!=='member'||!currentUser)return key==='products';if(isCardAdmin())return true;if(key==='products')return true;if(key==='users')return canManageUsers();return accessLoaded&&memberAccess?.active===true&&effectiveAccess()?.permissions?.[key]===true}
 function refreshAccessView(){if(!$('workspace').hidden){if(isWorkspaceGuest()&&mode==='member'&&!isCardAdmin())category=null;render(canUseMenu(activeMenu)?activeMenu:'products')}}
 function watchWorkspaceStatus(){
@@ -424,7 +424,7 @@ function watchWorkspaceStatus(){
   const before=workspaceEnabled;workspaceEnabled=snap.val()!==false;workspaceStatusReady=true;workspaceStatusError='';
   if(before!==workspaceEnabled&&!isCardAdmin()&&mode==='member'&&!workspaceEnabled){category=null;mobileDetail=false}
   refreshAccessView();
- },()=>{workspaceStatusReady=false;workspaceStatusError='운영 상태 조회 권한을 확인해주세요.';refreshAccessView()});
+ },()=>{workspaceStatusReady=false;workspaceStatusError='운영 상태를 확인할 수 없어 내부 업무자료 조회를 일시 차단했습니다.';refreshAccessView()});
 }
 function startMemberAccess(){
 stopSales();stopSales=()=>{};
