@@ -309,6 +309,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyretailsubsidy{margin-top:14px;padding-top:12px;border-top:1px solid #e4e9f1}.policyretailsubsidytitle{font-size:14px;font-weight:700;color:#233c60;margin-bottom:10px}.policyretailsubsidyamounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.policyretailsubsidyamounts>div{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;background:#f2f5f9;border-radius:8px;min-width:0}.policyretailsubsidyamounts span{font-size:13px;color:#647995}.policyretailsubsidyamounts strong{font-size:15px;color:#172f50;white-space:nowrap}
 .policyretailmeta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:8px 0 14px!important;font-size:12px}.policyretailissue{background:#eaf0fa;color:#24446d;border-radius:7px;padding:6px 10px;font-weight:700}.policyretaildate{color:#64748b;font-weight:500}.policytoparea .salescompactcard{padding-bottom:12px}
 .workspaceoperation{border:1px solid #d6e0ee;border-radius:12px;background:#f7f9fd;padding:14px;margin:0 0 15px}.workspaceoperation>strong{font-size:16px}.workspaceoperation .note{margin:8px 0}.workspaceoperationbuttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.workspaceoperationbuttons button{padding:11px;border:1px solid #bdcde0;border-radius:9px;background:#fff;font-weight:700}.workspaceoperationbuttons button.active{background:#203e6b;color:#fff}.workspaceoperationbuttons button:disabled:not(.active){opacity:.55}
+.retailnoticebox{border:1px solid #e4d3b9;border-radius:12px;background:#fffaf2;padding:12px 13px;margin:0 0 14px}.retailnoticeheader{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#5c3d21}.retailnoticebadge{font-size:11px;background:#fff0d3;color:#9b4e16;border-radius:5px;padding:3px 7px}.retailnoticebox p{font-size:12px;color:#775f4b;margin:7px 0 10px}.retailnoticeopen{border:1px solid #d5b895;background:#fff;color:#7b451d;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px}.retailnoticedialog{width:min(92vw,470px);max-height:82vh;border:0;border-radius:15px;padding:18px;background:#fff;color:#1d2939;box-shadow:0 12px 48px #0003}.retailnoticedialog::backdrop{background:#17243c99}.retailnoticedialog h3{font-size:18px;margin:0 0 14px}.retailnoticebody{overflow:auto;max-height:58vh}.retailnoticeitem{border-bottom:1px solid #e9edf2;padding:10px 0}.retailnoticeitem span{font-size:11px;color:#77849a}.retailnoticeitem p{font-size:13px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0}.retailnoticeclose{display:block;width:100%;margin-top:15px;border:0;border-radius:9px;background:#223e67;color:#fff;font-weight:700;padding:12px}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -718,6 +719,27 @@ function renderRetailPolicy(root){
   if(!root.isConnected)return;
   if(!data?.models){info.textContent='소매정책 자료가 아직 반영되지 않았습니다. 시트 동기화를 확인해주세요.';return}
   info.textContent='';info.className='policyretailmeta';const issue=document.createElement('span');issue.className='policyretailissue';issue.textContent='정책 '+(data.issue||'호수 미확인');const date=document.createElement('span');date.className='policyretaildate';date.textContent='적용일 · '+(data.effectiveDate||'미확인');info.append(issue,date);
+  const notices=(data.notices||[]).filter(n=>n&&n.text);
+  if(notices.length){
+   const noticeBox=document.createElement('section');noticeBox.className='retailnoticebox';
+   const header=document.createElement('div');header.className='retailnoticeheader';
+   const label=document.createElement('strong');label.textContent='📢 주요 정책 안내';
+   const mark=document.createElement('span');mark.className='retailnoticebadge';mark.textContent='필독';header.append(label,mark);
+   const brief=document.createElement('p');brief.textContent='정책 변경사항과 지급 유의사항을 확인해 주세요.';
+   const open=document.createElement('button');open.type='button';open.textContent='전체 안내 보기';open.className='retailnoticeopen';
+   noticeBox.append(header,brief,open);root.append(noticeBox);
+   const dialog=document.createElement('dialog');dialog.className='retailnoticedialog';
+   const dialogTitle=document.createElement('h3');dialogTitle.textContent='주요 정책 안내 · '+(data.issue||'');
+   const dialogBody=document.createElement('div');dialogBody.className='retailnoticebody';
+   notices.forEach(n=>{const item=document.createElement('section');item.className='retailnoticeitem';const line=document.createElement('span');line.textContent='원본 '+n.row+'행';const text=document.createElement('p');text.textContent=n.text;item.append(line,text);dialogBody.append(item)});
+   const close=document.createElement('button');close.type='button';close.className='retailnoticeclose';close.textContent='확인';close.onclick=()=>dialog.close();
+   dialog.append(dialogTitle,dialogBody,close);root.append(dialog);
+   open.onclick=()=>dialog.showModal();
+   const revision=String(data.issue||'')+'|'+String(data.effectiveDate||'')+'|'+String(data.updatedAt||'');
+   const storageKey='skwRetailNoticeSeen_'+(currentUser?.uid||'guest');
+   let seen='';try{seen=localStorage.getItem(storageKey)||''}catch(e){}
+   if(seen!==revision){try{localStorage.setItem(storageKey,revision)}catch(e){}dialog.showModal()}
+  }
   const search=document.createElement('input');search.type='search';search.placeholder='모델명 검색 (예: S942, IP18P)';search.setAttribute('aria-label','모델명 검색');search.className='policyretailsearch';
   const modelRow=document.createElement('div');modelRow.className='policyretailmodelrow';
   const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
