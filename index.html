@@ -304,6 +304,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyvariant>summary.policyresultmodel:after{flex:none}
  .policyretailsearch{width:100%;padding:13px;border:1px solid #d5dfec;border-radius:10px;margin:8px 0;font-size:15px}.policyretailfilters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}.policyretailfilters select{min-width:0;padding:10px 5px;border:1px solid #d5dfec;border-radius:8px;background:#fff}.policyretailfilters select:last-child{grid-column:span 2}.policyretailcontract{margin:12px 0}.policyretailcontract>h4{font-size:15px;margin:12px 0 8px}
 .policyretailfilters{display:block!important}.policyretailgroup{margin:0 0 8px}.policyretailfilters .policyretailsearch{margin:0 0 12px}.policyretailtabs{display:flex;gap:7px;margin:12px 0}.policyretailtabs button{flex:1;border:1px solid #d6dfed;background:#f1f4f8;color:#8793a6;border-radius:9px;padding:11px 5px;font-size:13px;font-weight:600}.policyretailtabs button.active{background:#fff;color:#152f55;border-color:#7b99c9;box-shadow:0 1px 3px #00000010}.policyretailcontract[hidden]{display:none!important}
+.policyretailmodelrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:8px 0}.policyretailmodelrow .policyretailsearch{width:100%;min-width:0;margin:0;padding:12px 9px;font-size:13px}.policyretailmodelrow select{width:100%;min-width:0;border:1px solid #d5dfec;border-radius:10px;background:#fff;padding:10px 7px;font-size:13px;color:#20304a}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -684,6 +685,11 @@ function renderRetailPolicy(root){
   if(!data?.models){info.textContent='소매정책 자료가 아직 반영되지 않았습니다. 시트 동기화를 확인해주세요.';return}
   info.textContent='소매단가표 · '+(data.issue||'')+' · '+(data.effectiveDate||'')+' 적용';
   const search=document.createElement('input');search.type='search';search.placeholder='모델명 검색 (예: S942, IP18P)';search.setAttribute('aria-label','모델명 검색');search.className='policyretailsearch';
+  const modelRow=document.createElement('div');modelRow.className='policyretailmodelrow';
+  const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
+  const modelOptions=[['','모델 선택'],...Object.keys(data.models).sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).map(name=>[name,name])];
+  for(const [value,label] of modelOptions){const option=document.createElement('option');option.value=value;option.textContent=label;modelFilter.append(option)}
+  modelRow.append(search,modelFilter);
   const filters=document.createElement('div');filters.className='policyretailfilters';
   const selectedGroups=new Set();
   const group=document.createElement('details');group.className='policymultiselect policyretailgroup';
@@ -695,7 +701,7 @@ function renderRetailPolicy(root){
   function updateGroup(){groupTitle.textContent=selectedGroups.size?'요금제 구간 '+selectedGroups.size+'개 선택':'요금제 구간 전체'}
   const plan=document.createElement('input');plan.type='search';plan.placeholder='요금제명 검색 (선택사항)';plan.setAttribute('aria-label','요금제명 검색');plan.className='policyretailsearch';
   const planItems=Object.values(data.plans||{}).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-  filters.append(group,plan);holder.append(search,filters);
+  filters.append(group,plan);holder.append(modelRow,filters);
   const results=document.createElement('div');holder.append(results);
   const top=document.createElement('section');top.className='policytoparea';const h=document.createElement('h3');h.textContent='이번 달 판매 TOP 5 · 소매 인센티브';top.append(h);
   for(const [i,item] of (data.top||[]).entries()){
@@ -704,15 +710,15 @@ function renderRetailPolicy(root){
    const detail=document.createElement('p');detail.textContent=(item.kind==='choice'?'선택약정':'공통지원금 약정')+' · '+item.plan+' · '+item.group+'구간 · '+item.type;
    const amount=document.createElement('div');amount.className='policytopamount';const count=document.createElement('span');count.textContent='판매 '+item.count+'건';const value=document.createElement('strong');value.textContent=money(item.amount);amount.append(count,value);
    card.append(name,detail,amount);top.append(card);
-   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;selectedGroups.clear();options.querySelectorAll('input').forEach(el=>el.checked=false);selectedGroups.add(item.group);options.querySelectorAll('input').forEach(el=>el.checked=el.value===item.group);updateGroup();plan.value=item.plan;refresh();window.scrollTo({top:0,behavior:'smooth'})};
+   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';selectedGroups.clear();options.querySelectorAll('input').forEach(el=>el.checked=false);selectedGroups.add(item.group);options.querySelectorAll('input').forEach(el=>el.checked=el.value===item.group);updateGroup();plan.value=item.plan;refresh();window.scrollTo({top:0,behavior:'smooth'})};
   }
   if(!data.top?.length){const p=document.createElement('p');p.className='note';p.textContent='이번 달 일치하는 판매 자료가 없습니다.';top.append(p)}
   holder.append(top);
   const family=v=>norm(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   function refresh(){
-   const q=norm(search.value),active=!!(q||selectedGroups.size||plan.value);top.hidden=active;results.replaceChildren();if(!active)return;
-   if(!q){const p=document.createElement('p');p.className='note';p.textContent='모델명을 입력하면 소매 인센티브를 조회할 수 있습니다.';results.append(p);return}
-   const names=Object.keys(data.models).filter(n=>norm(n).includes(q)).sort((a,b)=>family(a).localeCompare(family(b),'ko')||a.localeCompare(b,'ko',{numeric:true})).slice(0,30);
+   const q=norm(search.value),active=!!(q||modelFilter.value||selectedGroups.size||plan.value);top.hidden=active;results.replaceChildren();if(!active)return;
+   if(!q&&!modelFilter.value){const p=document.createElement('p');p.className='note';p.textContent='모델명을 입력하면 소매 인센티브를 조회할 수 있습니다.';results.append(p);return}
+   const names=Object.keys(data.models).filter(n=>(!q||norm(n).includes(q))&&(!modelFilter.value||n===modelFilter.value)).sort((a,b)=>family(a).localeCompare(family(b),'ko')||a.localeCompare(b,'ko',{numeric:true})).slice(0,30);
    if(!names.length){results.textContent='검색 결과가 없습니다.';return}
    const counts={};names.forEach(n=>counts[family(n)]=(counts[family(n)]||0)+1);
    for(const name of names){
@@ -758,6 +764,7 @@ function renderRetailPolicy(root){
    }
   }
   [search,plan].forEach(el=>el.addEventListener('input',refresh));
+  modelFilter.addEventListener('change',()=>{if(modelFilter.value)search.value='';refresh()});
   refresh();
  }).catch(e=>{if(root.isConnected)info.textContent='소매단가표 조회 실패: '+e.message+' (Firebase 회원 읽기 권한 확인 필요)'});
 }
