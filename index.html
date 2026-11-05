@@ -308,6 +308,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .policyretailplanrow{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:0 0 8px}.policyretailplanrow .policyretailsearch{width:100%;min-width:0;margin:0;padding:12px 9px;font-size:13px}.policyretailplanrow select{width:100%;min-width:0;border:1px solid #d5dfec;border-radius:10px;background:#fff;padding:10px 7px;font-size:13px;color:#20304a}
 .policyretailsubsidy{margin-top:14px;padding-top:12px;border-top:1px solid #e4e9f1}.policyretailsubsidytitle{font-size:14px;font-weight:700;color:#233c60;margin-bottom:10px}.policyretailsubsidyamounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.policyretailsubsidyamounts>div{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;background:#f2f5f9;border-radius:8px;min-width:0}.policyretailsubsidyamounts span{font-size:13px;color:#647995}.policyretailsubsidyamounts strong{font-size:15px;color:#172f50;white-space:nowrap}
 .policyretailmeta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:8px 0 14px!important;font-size:12px}.policyretailissue{background:#eaf0fa;color:#24446d;border-radius:7px;padding:6px 10px;font-weight:700}.policyretaildate{color:#64748b;font-weight:500}.policytoparea .salescompactcard{padding-bottom:12px}
+.workspaceoperation{border:1px solid #d6e0ee;border-radius:12px;background:#f7f9fd;padding:14px;margin:0 0 15px}.workspaceoperation>strong{font-size:16px}.workspaceoperation .note{margin:8px 0}.workspaceoperationbuttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.workspaceoperationbuttons button{padding:11px;border:1px solid #bdcde0;border-radius:9px;background:#fff;font-weight:700}.workspaceoperationbuttons button.active{background:#203e6b;color:#fff}.workspaceoperationbuttons button:disabled:not(.active){opacity:.55}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -366,7 +367,7 @@ return d.cards.every((c,i)=>typeof c.name==='string'&&c.name.length>0&&c.name.le
 }
 function refreshCardView(){if(mode!=='welcome'&&!$('workspace').hidden&&category==='wireless'&&selectedPost==='cards-nov'&&articleOpen)render('products')}
 async function connectCardData(){
-try{cardDbApi=await import('https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js');cardDb=cardDbApi.getDatabase();startMemberAccess();
+try{cardDbApi=await import('https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js');cardDb=cardDbApi.getDatabase();watchWorkspaceStatus();startMemberAccess();
 cardDbApi.onValue(cardDbApi.ref(cardDb,'public/cardGuideNovember2026'),snap=>{const d=snap.val();cardReadReady=true;if(d===null){cardRevision=0;return}if(!validateGuide(d)){cardReadReady=false;return}const kept=d.cards.map((c,i)=>({card:c,terms:d.terms[i]})).filter(x=>!x.card.name.includes('롯데'));novemberCards=kept.map(x=>x.card);cardTerms=kept.map(x=>x.terms);cardRevision=d.revision;refreshCardView()},()=>{cardReadReady=false})}catch{cardReadReady=false}
 }
 function editorField(parent,title,value,kind='text'){
@@ -411,8 +412,20 @@ function isDealerIdentity(email){return /^p[a-z0-9]{5}[^@]*@accounts\.skw\.inval
 function effectiveAccess(user=currentUser,access=memberAccess){if(!access||!isDealerIdentity(user?.email))return access;return {...access,permissions:!dealerPolicyLoaded?{}:dealerPolicy?dealerPolicy.permissions:access.permissions}}
 let memberAccess=null,accessLoaded=false,activeMenu='products',accessUnsubs=[],memberRequests={},memberRecords={},adminListError='',registerError='';
 function canManageUsers(){return isCardAdmin()||(!!currentUser&&accessLoaded&&memberAccess?.active===true&&memberAccess?.manageUsers===true)}
-function canUseMenu(key){if(key==='policy'&&mode==='guest')return true;if(mode!=='member'||!currentUser)return key==='products';if(isCardAdmin())return true;if(key==='products')return true;if(key==='users')return canManageUsers();return accessLoaded&&memberAccess?.active===true&&effectiveAccess()?.permissions?.[key]===true}
-function refreshAccessView(){if(!$('workspace').hidden)render(canUseMenu(activeMenu)?activeMenu:'products')}
+let workspaceEnabled=true,workspaceStatusReady=false,workspaceStatusError='',workspaceUnsub=null;
+function isWorkspaceGuest(){return mode==='guest'||(!isCardAdmin()&&workspaceStatusReady&&!workspaceEnabled)}
+function canUseMenu(key){if(key==='policy'&&isWorkspaceGuest())return true;if(isWorkspaceGuest())return key==='products'||key==='policy';if(mode!=='member'||!currentUser)return key==='products';if(isCardAdmin())return true;if(key==='products')return true;if(key==='users')return canManageUsers();return accessLoaded&&memberAccess?.active===true&&effectiveAccess()?.permissions?.[key]===true}
+function refreshAccessView(){if(!$('workspace').hidden){if(isWorkspaceGuest()&&mode==='member'&&!isCardAdmin())category=null;render(canUseMenu(activeMenu)?activeMenu:'products')}}
+function watchWorkspaceStatus(){
+ if(workspaceUnsub){workspaceUnsub();workspaceUnsub=null}
+ workspaceStatusReady=false;workspaceStatusError='';
+ if(!cardDbApi||!cardDb)return;
+ workspaceUnsub=cardDbApi.onValue(cardDbApi.ref(cardDb,'workspaceControl/enabled'),snap=>{
+  const before=workspaceEnabled;workspaceEnabled=snap.val()!==false;workspaceStatusReady=true;workspaceStatusError='';
+  if(before!==workspaceEnabled&&!isCardAdmin()&&mode==='member'&&!workspaceEnabled){category=null;mobileDetail=false}
+  refreshAccessView();
+ },()=>{workspaceStatusReady=false;workspaceStatusError='운영 상태 조회 권한을 확인해주세요.';refreshAccessView()});
+}
 function startMemberAccess(){
 stopSales();stopSales=()=>{};
 for(const stop of accessUnsubs)stop();accessUnsubs=[];memberAccess=null;accessLoaded=false;memberRequests={};memberRecords={};adminListError='';registerError='';dealerPolicy=null;dealerPolicyLoaded=false;dealerPolicyError='';
@@ -470,9 +483,28 @@ else{const hint=document.createElement('p');hint.className='note';hint.textConte
 root.append(form);
 }
 
+function renderWorkspaceSwitch(root){
+ const box=document.createElement('section');box.className='workspaceoperation';
+ const title=document.createElement('strong');title.textContent='업무공간 운영 관리';box.append(title);
+ const description=document.createElement('p');description.className='note';description.textContent='비활성 시 일반 회원은 상품소개·공통지원금만 이용합니다. 기존 회원별 권한은 유지됩니다.';box.append(description);
+ const state=document.createElement('p');state.className='note';state.textContent=workspaceStatusError||(!workspaceStatusReady?'운영 상태 확인 중':workspaceEnabled?'현재 상태 · 활성':'현재 상태 · 비활성');box.append(state);
+ const row=document.createElement('div');row.className='workspaceoperationbuttons';
+ for(const [value,label] of [[true,'활성'],[false,'비활성']]){
+  const button=document.createElement('button');button.type='button';button.textContent=label;button.className=workspaceStatusReady&&workspaceEnabled===value?'active':'';
+  button.disabled=!workspaceStatusReady||!!workspaceStatusError||workspaceEnabled===value;
+  button.onclick=async()=>{
+   if(!isCardAdmin()||!cardDbApi||!cardDb)return;
+   if(!confirm(value?'모든 일반 회원의 업무공간을 다시 활성화할까요?':'모든 일반 회원의 내부 정책·판매·정산·재고 조회를 즉시 중단할까요?'))return;
+   button.disabled=true;state.textContent='운영 상태 변경 중…';
+   try{await cardDbApi.set(cardDbApi.ref(cardDb,'workspaceControl/enabled'),value);state.textContent='운영 상태 변경 완료'}
+   catch(e){state.textContent='변경 실패 · Firebase 운영 권한 규칙을 확인해주세요.';button.disabled=false}
+  };row.append(button);
+ }
+ box.append(row);root.append(box);
+}
 function renderMemberAdmin(root){
 if(!canManageUsers())return;
-if(isCardAdmin()){const controls=document.createElement('div');controls.className='memberadmincontrols';controls.append(action('비밀번호 초기화',openResetService,'quiet'),action('초기화 연결 설정',configureResetService,'quiet'));root.append(controls)}
+if(isCardAdmin()){renderWorkspaceSwitch(root);const controls=document.createElement('div');controls.className='memberadmincontrols';controls.append(action('비밀번호 초기화',openResetService,'quiet'),action('초기화 연결 설정',configureResetService,'quiet'));root.append(controls)}
 const description=document.createElement('p');description.className='memberintro';description.textContent='직원은 개별 권한, 판매점은 공통 메뉴 권한을 사용합니다. 계정 승인·이용 중지는 아이디별로 설정합니다.';root.append(description);
 if(adminListError){const err=document.createElement('p');err.className='cardnotice';err.textContent=adminListError;root.append(err)}
 const ids=[...new Set([...Object.keys(memberRequests),...Object.keys(memberRecords)])].sort((a,b)=>(memberRequests[a]?.username||a).localeCompare(memberRequests[b]?.username||b));
@@ -544,7 +576,7 @@ const policyCategories=[
  ['common','공통지원금']
 ];
 function renderPolicyCategories(root){
- const guest=mode==='guest';
+ const guest=isWorkspaceGuest();
  const grid=document.createElement('div');grid.className='grid policycategorygrid';
  const heading=document.createElement('p');heading.className='note';heading.textContent=guest?'게스트는 공통지원금을 확인할 수 있습니다.':'확인할 정책 항목을 선택하세요.';root.append(heading);
  for(const [id,title] of policyCategories){
@@ -676,7 +708,7 @@ function renderCommonSubsidy(root){
 
 function renderRetailPolicy(root){
  const info=document.createElement('p');info.className='note';info.textContent='소매단가표를 불러오는 중…';root.append(info);
- if(mode!=='member'||!currentUser||!canUseMenu('policy')){info.textContent='로그인 및 정책 조회 권한이 필요합니다.';return}
+ if(isWorkspaceGuest()||mode!=='member'||!currentUser||!canUseMenu('policy')){info.textContent='로그인 및 정책 조회 권한이 필요합니다.';return}
  const holder=document.createElement('div');root.append(holder);
  const db='https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app';
  const money=v=>v==null?'자료 없음':Number(v).toLocaleString('ko-KR')+'원';
@@ -793,9 +825,10 @@ if(key==='products'&&category){
  parent.onclick=()=>{resetProducts();category=null;render('products');window.scrollTo(0,0)};
  const child=document.createElement('span');child.textContent=' › '+(category==='wireless'?'무선':'유선');
  mobileTitle.append(parent,child);
-}else mobileTitle.textContent=key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(mode==='guest'&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
+}else mobileTitle.textContent=key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(isWorkspaceGuest()&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
 if(canManageUsers()&&mode==='member'){const manage=action('사용자 관리',()=>openMenuPage('users'),'quiet');manage.setAttribute('aria-current',key==='users'?'page':'false');$('menu').append(manage)}
-const content=$('content');content.replaceChildren();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
+const content=$('content');content.replaceChildren();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isWorkspaceGuest()&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
+if(isWorkspaceGuest()&&mode==='member'&&workspaceStatusReady&&!workspaceEnabled){const banner=document.createElement('p');banner.className='cardnotice';banner.textContent='내부 업무공간이 일시 중단되었습니다. 상품소개와 공통지원금은 계속 이용할 수 있습니다.';content.append(banner)}
 if(key==='products'&&!category){const grid=document.createElement('div');grid.className='grid';for(const [type,title,desc] of [['wireless','무선','무선 상품 안내와 상담에 활용할 세일즈톡'],['wired','유선','인터넷·TV 등 유선 상품과 상담 안내']]){const b=document.createElement('button');b.className='card';b.innerHTML='<span class="producticon" aria-hidden="true"><img src="./assets/'+type+'-icon.png" alt="" width="96" height="96"></span><strong>'+title+'</strong><p>'+desc+'</p><span class="arrow">자세히 보기 →</span>';b.onclick=()=>{resetProducts();category=type;render('products')};grid.append(b)}content.append(grid);return}
 if(key==='products'){renderProducts(content);return}
 if(key==='policy'){renderPolicyCategories(content);return}
