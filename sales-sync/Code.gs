@@ -228,6 +228,8 @@ function syncRetailPolicyNow(){
  const month=Utilities.formatDate(new Date(),book.getSpreadsheetTimeZone(),'yyyy-MM');
  const typeOf=v=>{const t=String(v||'').toUpperCase();return t.includes('기변')?'기변':t.includes('MNP')||t.includes('번호이동')?'MNP':t.includes('신규')||t.includes('010')?'010':''};
  const contractOf=v=>{const t=String(v||'');return t.includes('선택')?'choice':t.includes('지원금')?'common':''};
+ const planCounts={};for(let i=1;i<raw.length;i++){const row=raw[i];if(!String(row[0]||'').replace(/[./]/g,'-').startsWith(month))continue;const name=String(row[hasRep?7:6]||'').trim();const key=normalizePolicyName_(name);if(plans[key])planCounts[key]=(planCounts[key]||0)+1;}
+ const planRanking=Object.keys(planCounts).sort((a,b)=>planCounts[b]-planCounts[a]||a.localeCompare(b)).map(key=>({name:plans[key].name,count:planCounts[key]}));
  const stats={},modelKeys=Object.keys(models),missed={plan:0,model:0,contract:0};
  for(let i=1;i<raw.length;i++){
   const row=raw[i];if(!String(row[0]||'').replace(/[./]/g,'-').startsWith(month))continue;
@@ -251,7 +253,7 @@ function syncRetailPolicyNow(){
   return {model,count:entry.count,...condition};
  });
  const salesRanking=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).map(([model,entry])=>({model,count:entry.count}));
- const payload={updatedAt:Date.now(),month,issue:String(d[0][4]||'').trim(),effectiveDate:String(d[0][15]||'').trim(),groups:headings,plans,models,top,salesRanking};
+ const payload={updatedAt:Date.now(),month,issue:String(d[0][4]||'').trim(),effectiveDate:String(d[0][15]||'').trim(),groups:headings,plans,models,top,salesRanking,planRanking};
  const response=UrlFetchApp.fetch(SALES_DB+'/retailPolicy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('소매정책 Firebase 반영 실패 ('+response.getResponseCode()+'). retailPolicy 쓰기 규칙을 확인해주세요.');
  console.log('소매정책 모델 '+Object.keys(models).length+'건, 요금제 '+Object.keys(plans).length+'건, TOP '+top.length+'건 / 누락 '+JSON.stringify(missed));
