@@ -217,7 +217,7 @@ function syncRetailPolicyNow(){
  for(const [kind,first,last] of [['common',13,114],['choice',116,217]]){
   for(let i=first;i<=last;i++){
    const row=d[i]||[],model=String(row[1]||'').trim();if(!model||model==='모델명')continue;
-   if(String(row[60]||'').trim().toUpperCase()==='X')continue;
+   if(String(row[4]||'').trim().toUpperCase()==='X')continue;
    const amounts={};for(let j=0;j<groups.length;j++)amounts[groups[j]]=[0,1,2].map(k=>parse(row[start[j]+k]));
    if(!models[model])models[model]={model,price:parse(row[2])/1000||null,release:String(row[3]||''),network:String(row[4]||''),contracts:{}};
    models[model].contracts[kind]=amounts;
