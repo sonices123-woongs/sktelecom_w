@@ -205,6 +205,7 @@ function syncRetailPolicyNow(){
  if(!sheet||!mapping||!sales)throw new Error('소매단가표, 요금제지급구간, 판매원본 탭을 확인해주세요.');
  const d=sheet.getDataRange().getDisplayValues(),m=mapping.getDataRange().getDisplayValues();
  if(d.length<218||d[10][1].replace(/\s/g,'')!=='모델명')throw new Error('소매단가표 11행 및 218행까지 확인해주세요.');
+ const notices=[];for(let row=1;row<=9;row++){const cells=(d[row]||[]).map(v=>String(v||'').trim()).filter(Boolean);const unique=[...new Set(cells)];if(unique.length)notices.push({row:row+1,text:unique.join(' · ').slice(0,1800)})}
  const groups=['P','I','F','L','M','R','S','기본'],start=[8,11,14,17,20,23,26,29];
  const headings=start.map((c,i)=>({key:groups[i],label:String(d[10][c]||groups[i]).replace(/\s+/g,' ').trim()}));
  const plans={};
@@ -253,7 +254,7 @@ function syncRetailPolicyNow(){
   return {model,count:entry.count,...condition};
  });
  const salesRanking=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).map(([model,entry])=>({model,count:entry.count}));
- const payload={updatedAt:Date.now(),month,issue:String(d[0][4]||'').trim(),effectiveDate:String(d[0][15]||'').trim(),groups:headings,plans,models,top,salesRanking,planRanking};
+ const payload={updatedAt:Date.now(),month,issue:String(d[0][4]||'').trim(),effectiveDate:String(d[0][15]||'').trim(),groups:headings,plans,models,top,salesRanking,planRanking,notices};
  const response=UrlFetchApp.fetch(SALES_DB+'/retailPolicy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
  if(response.getResponseCode()!==200)throw new Error('소매정책 Firebase 반영 실패 ('+response.getResponseCode()+'). retailPolicy 쓰기 규칙을 확인해주세요.');
  console.log('소매정책 모델 '+Object.keys(models).length+'건, 요금제 '+Object.keys(plans).length+'건, TOP '+top.length+'건 / 누락 '+JSON.stringify(missed));
