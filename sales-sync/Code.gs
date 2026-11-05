@@ -4,7 +4,7 @@ const SALES_TAB = '판매원본';
 // 선택한 열만 전송합니다. 고객 이름/전화번호 등 원본의 나머지 열은 전송하지 않습니다.
 const SALES_HEADERS=['개통일','개통시간','단말기정보_단말기','개통정보_세부판매유형','개통정보_유통망','단말기정보_단말기결제조건','요금제','단말할부금','공통지원금','추가지원금','제휴카드선할인','레벨2조직명','정산처','정산매장코드'];
 const SALES_COLUMNS={date:1,time:2,model:3,activation:4,contract:5,payment:6,plan:7,installment:8,subsidy:9,extra:10,card:11,staff:12,seller:13};
-function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addItem('공통지원금 지금 반영','syncCommonSubsidyNow').addToUi()}
+function onOpen(){SpreadsheetApp.getUi().createMenu('SKW 자료 연동').addItem('판매 자동 반영 설정','setupSalesSync').addItem('판매 지금 반영','syncSalesNow').addItem('재고 자동 반영 설정','setupInventorySync').addItem('재고 지금 반영','syncInventoryNow').addItem('공통지원금 지금 반영','syncCommonSubsidyNow').addItem('소매단가표 지금 반영','syncRetailPolicyNow').addToUi()}
 function requireSalesOwner_(){if(Session.getEffectiveUser().getEmail().toLowerCase()!==SALES_OWNER)throw new Error('소유자 계정에서 실행해주세요.')}
 function setupSalesSync(){
  console.log('1/5 소유자 및 시트 확인');
@@ -18,8 +18,8 @@ function setupSalesSync(){
  ScriptApp.newTrigger('salesChanged').forSpreadsheet(sheet).onChange().create();
  console.log('5/5 연결 완료! 판매원본에 붙여넣으면 자동 반영됩니다.');
 }
-function salesEdited(e){if(!e?.range)return;const name=e.range.getSheet().getName();if(name===SALES_TAB){syncSalesNow();syncCommonSubsidyNow()}else if(name===INVENTORY_TAB)syncInventoryNow();else if(name==='공통지원금')syncCommonSubsidyNow()}
-function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){const errors=[];for(const fn of [syncSalesNow,syncInventoryNow,syncCommonSubsidyNow])try{fn()}catch(error){errors.push(error.message)}if(errors.length)throw new Error(errors.join(' / '))}}
+function salesEdited(e){if(!e?.range)return;const name=e.range.getSheet().getName();if(name===SALES_TAB){syncSalesNow();syncCommonSubsidyNow()}else if(name===INVENTORY_TAB)syncInventoryNow();else if(name==='공통지원금')syncCommonSubsidyNow();else if(name==='소매단가표'||name==='요금제지급구간')syncRetailPolicyNow()}
+function salesChanged(e){if(e&&e.changeType!=='EDIT'&&e.changeType!=='FORMAT'){const errors=[];for(const fn of [syncSalesNow,syncInventoryNow,syncCommonSubsidyNow,syncRetailPolicyNow])try{fn()}catch(error){errors.push(error.message)}if(errors.length)throw new Error(errors.join(' / '))}}
 function salesColumn_(v){return String(v==null?'':v).trim()}
 function buildSalesPayload_(values,display,timezone){
  if(values.length<2)throw new Error('원본이 비어 있어 기존 판매 자료를 유지했습니다. 제목과 판매 데이터를 붙여넣어주세요.');
@@ -194,4 +194,64 @@ function syncCommonSubsidyNow(){
  console.log('공통지원금 '+Object.keys(models).length+'개 모델, 이번 달 TOP '+top.length+'건 반영 완료');
  console.log('TOP5 진단: '+JSON.stringify(diagnostics));
  console.log('요금제 이름 불일치 예시: '+JSON.stringify([...missedPlans].slice(0,12)));
+}
+
+// 소매단가표: 11~13행 헤더, 14~115 공통, 117~218 선택약정. 금액은 천원 단위.
+function syncRetailPolicyNow(){
+ requireSalesOwner_();
+ const id=PropertiesService.getScriptProperties().getProperty('SALES_SHEET_ID');
+ const book=id?SpreadsheetApp.openById(id):SpreadsheetApp.getActiveSpreadsheet();
+ const sheet=book.getSheetByName('소매단가표'),mapping=book.getSheetByName('요금제지급구간'),sales=book.getSheetByName(SALES_TAB);
+ if(!sheet||!mapping||!sales)throw new Error('소매단가표, 요금제지급구간, 판매원본 탭을 확인해주세요.');
+ const d=sheet.getDataRange().getDisplayValues(),m=mapping.getDataRange().getDisplayValues();
+ if(d.length<218||d[10][1].replace(/\s/g,'')!=='모델명')throw new Error('소매단가표 11행 및 218행까지 확인해주세요.');
+ const groups=['P','I','F','L','M','R','S','기본'],start=[8,11,14,17,20,23,26,29];
+ const headings=start.map((c,i)=>({key:groups[i],label:String(d[10][c]||groups[i]).replace(/\s+/g,' ').trim()}));
+ const plans={};
+ for(let i=1;i<m.length;i++){const name=String(m[i][0]||'').trim(),code=String(m[i][3]||'').trim().toUpperCase();if(!name||!code)continue;
+ const group=groups.find(g=>code.startsWith(g+'_')||code===g)||(code.includes('기본')?'기본':'');
+ if(group)plans[normalizePolicyName_(name)]={name,group};
+ }
+ const models={};
+ const parse=v=>{const t=String(v||'').replace(/[,원\s]/g,'');return /^-?\d+(?:\.\d+)?$/.test(t)?Number(t)*1000:null};
+ for(const [kind,first,last] of [['common',13,114],['choice',116,217]]){
+  for(let i=first;i<=last;i++){
+   const row=d[i]||[],model=String(row[1]||'').trim();if(!model||model==='모델명')continue;
+   if(String(row[4]||'').trim().toUpperCase()==='X')continue;
+   const amounts={};for(let j=0;j<groups.length;j++)amounts[groups[j]]=[0,1,2].map(k=>parse(row[start[j]+k]));
+   if(!models[model])models[model]={model,price:parse(row[2])/1000||null,release:String(row[3]||''),network:String(row[4]||''),contracts:{}};
+   models[model].contracts[kind]=amounts;
+  }
+ }
+ if(!Object.keys(models).length||!Object.keys(plans).length)throw new Error('소매정책 또는 요금제 지급구간 자료가 비어 있습니다.');
+ const raw=sales.getDataRange().getDisplayValues(),hasRep=String(raw[0][2]||'').trim()==='대표모델명';
+ const month=Utilities.formatDate(new Date(),book.getSpreadsheetTimeZone(),'yyyy-MM');
+ const typeOf=v=>{const t=String(v||'').toUpperCase();return t.includes('기변')?'기변':t.includes('MNP')||t.includes('번호이동')?'MNP':t.includes('신규')||t.includes('010')?'010':''};
+ const contractOf=v=>{const t=String(v||'');return t.includes('선택')?'choice':t.includes('지원금')?'common':''};
+ const stats={},modelKeys=Object.keys(models),missed={plan:0,model:0,contract:0};
+ for(let i=1;i<raw.length;i++){
+  const row=raw[i];if(!String(row[0]||'').replace(/[./]/g,'-').startsWith(month))continue;
+  const model=modelKeys.find(k=>normalizePolicyName_(k)===normalizePolicyName_(row[2]));
+  if(!model){missed.model++;continue;}
+  const plan=String(row[hasRep?7:6]||'').trim();
+  const p=plans[normalizePolicyName_(plan)]||plans[normalizePolicyName_(plan.replace(/\([^)]*\)/g,''))];
+  if(!p){missed.plan++;continue;}
+  const kind=contractOf(row[hasRep?5:4]),type=typeOf(row[hasRep?4:3]);
+  if(!kind||!type||!models[model].contracts[kind]){missed.contract++;continue;}
+  const amount=models[model].contracts[kind][p.group]?.[['010','MNP','기변'].indexOf(type)];
+  if(amount==null)continue;
+  const entry=stats[model]||(stats[model]={count:0,conditions:{}});
+  entry.count++;
+  const key=[kind,p.group,type,plan].join('|');
+  if(!entry.conditions[key])entry.conditions[key]={count:0,kind,group:p.group,type,plan,amount};
+  entry.conditions[key].count++;
+ }
+ const top=Object.entries(stats).sort((a,b)=>b[1].count-a[1].count||a[0].localeCompare(b[0])).slice(0,5).map(([model,entry])=>{
+  const condition=Object.values(entry.conditions).sort((a,b)=>b.count-a.count||a.plan.localeCompare(b.plan))[0];
+  return {model,count:entry.count,...condition};
+ });
+ const payload={updatedAt:Date.now(),month,issue:String(d[0][4]||'').trim(),effectiveDate:String(d[0][15]||'').trim(),groups:headings,plans,models,top};
+ const response=UrlFetchApp.fetch(SALES_DB+'/retailPolicy.json',{method:'put',contentType:'application/json',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:JSON.stringify(payload),muteHttpExceptions:true});
+ if(response.getResponseCode()!==200)throw new Error('소매정책 Firebase 반영 실패 ('+response.getResponseCode()+'). retailPolicy 쓰기 규칙을 확인해주세요.');
+ console.log('소매정책 모델 '+Object.keys(models).length+'건, 요금제 '+Object.keys(plans).length+'건, TOP '+top.length+'건 / 누락 '+JSON.stringify(missed));
 }
