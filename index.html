@@ -696,7 +696,15 @@ function renderRetailPolicy(root){
   const planFilter=document.createElement('select');planFilter.setAttribute('aria-label','요금제 선택');
   const planRanks=(data.planRanking||[]).map(x=>norm(x.name));
   const planItems=Object.values(data.plans||{}).sort((a,b)=>{const ai=planRanks.indexOf(norm(a.name)),bi=planRanks.indexOf(norm(b.name));return (ai<0?999999:ai)-(bi<0?999999:bi)||a.name.localeCompare(b.name,'ko')});
-  for(const [value,label] of [['','요금제 선택'],...planItems.map(p=>[p.name,p.name])]){const option=document.createElement('option');option.value=value;option.textContent=label;planFilter.append(option)}
+  function updatePlanOptions(){
+   const selected=planFilter.value,query=norm(plan.value);
+   const matches=query?planItems.filter(p=>norm(p.name).includes(query)):planItems;
+   planFilter.replaceChildren();
+   const first=document.createElement('option');first.value='';first.textContent=query?'검색 결과 '+matches.length+'개 · 요금제 선택':'요금제 선택';planFilter.append(first);
+   for(const p of matches){const option=document.createElement('option');option.value=p.name;option.textContent=p.name;planFilter.append(option)}
+   planFilter.value=matches.some(p=>p.name===selected)?selected:'';
+  }
+  updatePlanOptions();
   filters.append(plan,planFilter);holder.append(modelRow,filters);
   const planHint=document.createElement('p');planHint.className='note';holder.append(planHint);
   const results=document.createElement('div');holder.append(results);
@@ -707,7 +715,7 @@ function renderRetailPolicy(root){
    const detail=document.createElement('p');detail.textContent=(item.kind==='choice'?'선택약정':'공통지원금 약정')+' · '+item.plan+' · '+item.group+'구간 · '+item.type;
    const amount=document.createElement('div');amount.className='policytopamount';const count=document.createElement('span');count.textContent='판매 '+item.count+'건';const value=document.createElement('strong');value.textContent=money(item.amount);amount.append(count,value);
    card.append(name,detail,amount);top.append(card);
-   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';plan.value=item.plan;planFilter.value=planItems.some(p=>p.name===item.plan)?item.plan:'';refresh();window.scrollTo({top:0,behavior:'smooth'})};
+   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';plan.value=item.plan;updatePlanOptions();planFilter.value=planItems.some(p=>p.name===item.plan)?item.plan:'';refresh();window.scrollTo({top:0,behavior:'smooth'})};
   }
   if(!data.top?.length){const p=document.createElement('p');p.className='note';p.textContent='이번 달 일치하는 판매 자료가 없습니다.';top.append(p)}
   holder.append(top);
@@ -758,7 +766,7 @@ function renderRetailPolicy(root){
    }
   }
   search.addEventListener('input',refresh);
-  plan.addEventListener('input',()=>{planFilter.value='';refresh()});
+  plan.addEventListener('input',()=>{planFilter.value='';updatePlanOptions();refresh()});
   planFilter.addEventListener('change',()=>{if(planFilter.value)plan.value='';refresh()});
   modelFilter.addEventListener('change',()=>{if(modelFilter.value)search.value='';refresh()});
   refresh();
