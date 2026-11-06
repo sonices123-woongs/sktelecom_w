@@ -67,7 +67,7 @@ const INVENTORY_TAB='재고관리';
 function cleanStock_(v){const text=String(v==null?'':v).trim();return ['0','None','null','undefined'].includes(text)?'':text}
 function buildInventoryPayload_(values,display,timezone){
  if(values.length<2)throw new Error('재고관리 탭이 비어 있어 기존 재고를 유지했습니다.');
- const expected=['레벨2조직명','레벨3조직명','보유처','재고이동입고일자','대표모델명','색상','일련번호','비고'];
+ const expected=['레벨2조직명','레벨3조직명','보유처','재고이동입고일자','모델명','색상','일련번호','비고'];
  if(!expected.every((name,i)=>String(display[0][i]).trim()===name))throw new Error('재고관리 A1:H1 제목이 업로드용과 다릅니다. 제목 포함 A~H열을 붙여넣어주세요.');
  const rows={};
  for(let i=1;i<display.length;i++){
