@@ -618,25 +618,7 @@ function renderCommonSubsidy(root){
   const list=document.createElement('div');list.className='policytoplist';topArea.append(list);
   const money=n=>n==null?'자료 없음':Number(n).toLocaleString('ko-KR')+'원';
   const types=['010','MNP','기변'];
-  const selected={models:new Set(),plans:new Set(),types:new Set()};
-  const menus=[];
-  function multi(name,items,set){
-   const details=document.createElement('details');details.className='policymultiselect';
-   const summary=document.createElement('summary');summary.textContent=name+' 선택';details.append(summary);
-   const options=document.createElement('div');options.className='policymultioptions';
-   const all=document.createElement('button');all.type='button';all.className='policymulticlear';all.textContent='전체 선택 해제';all.onclick=()=>{set.clear();for(const input of options.querySelectorAll('input'))input.checked=false;refresh();lookup()};
-   options.append(all);
-   for(const item of items){
-    const row=document.createElement('label');row.className='policymultirow';
-    const input=document.createElement('input');input.type='checkbox';input.value=item;
-    const span=document.createElement('span');span.textContent=item;
-    input.onchange=()=>{if(input.checked)set.add(item);else set.delete(item);refresh();lookup()};
-    row.append(input,span);options.append(row);
-   }
-   details.append(options);form.append(details);menus.push(details);
-   function refresh(){summary.textContent=set.size?name+' '+set.size+'개 선택':name+' 선택'}
-   return details;
-  }
+  const selected={models:new Set(),plans:new Set()};
   form.append(search);
   const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
   function updateModelOptions(){
@@ -649,23 +631,28 @@ function renderCommonSubsidy(root){
   }
   modelFilter.onchange=()=>{selected.models.clear();if(modelFilter.value)selected.models.add(modelFilter.value);lookup()};
   form.append(modelFilter);
-  multi('요금제',plans,selected.plans);
-  multi('유형',types,selected.types);
+  const planSearch=document.createElement('input');planSearch.type='search';planSearch.placeholder='요금제 검색';planSearch.autocomplete='off';planSearch.setAttribute('aria-label','요금제 검색');
+  const planFilter=document.createElement('select');planFilter.setAttribute('aria-label','요금제 선택');
+  function updatePlanOptions(){
+   const query=clean(planSearch.value),chosen=[...selected.plans][0]||'';
+   const matches=plans.filter(name=>!query||clean(name).includes(query));
+   planFilter.replaceChildren();
+   const first=document.createElement('option');first.value='';first.textContent=query?'검색 결과 '+matches.length+'개 · 요금제 선택':'요금제 선택';planFilter.append(first);
+   for(const name of matches){const option=document.createElement('option');option.value=name;option.textContent=name;planFilter.append(option)}
+   planFilter.value=matches.includes(chosen)?chosen:'';
+  }
+  planFilter.onchange=()=>{selected.plans.clear();if(planFilter.value)selected.plans.add(planFilter.value);lookup()};
+  planSearch.oninput=()=>{selected.plans.clear();updatePlanOptions();lookup()};
+  form.append(planSearch,planFilter);
+  updatePlanOptions();
   sticky.append(form);area.append(result,topArea);
-  document.addEventListener('click',event=>{
-   if(!root.isConnected)return;
-   for(const menu of menus)if(menu.open&&!menu.contains(event.target))menu.open=false;
-  },{signal:(()=>{const c=new AbortController();const observer=new MutationObserver(()=>{if(!root.isConnected){c.abort();observer.disconnect()}});observer.observe(document.body,{childList:true,subtree:true});return c.signal})()});
-  for(const menu of menus)menu.addEventListener('toggle',()=>{if(menu.open)for(const other of menus)if(other!==menu)other.open=false});
   function lookup(){
    const query=clean(search.value);
    const matches=keys.filter(k=>(!selected.models.size||selected.models.has(k))&&(!query||clean(k).includes(query)));
-   const active=!!(selected.models.size||query||selected.plans.size||selected.types.size);
+   const planQuery=clean(planSearch.value);
+   const active=!!(selected.models.size||query||selected.plans.size||planQuery);
    topArea.hidden=active;result.replaceChildren();
    if(!active)return;
-   if(!selected.models.size&&!query){
-    const p=document.createElement('p');p.className='note';p.textContent='모델을 선택하거나 모델명을 검색해 주세요.';result.append(p);return;
-   }
    if(!matches.length){const p=document.createElement('p');p.className='note';p.textContent='일치하는 모델이 없습니다.';result.append(p);return}
    const displayed=matches.slice(0,30);
    const familyCounts=new Map();
@@ -685,6 +672,7 @@ function renderCommonSubsidy(root){
     let found=0;
     for(let i=0;i<plans.length;i++){
      if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
+     if(planQuery&&!clean(plans[i]).includes(planQuery))continue;
      const values=data.models[name]?.[i];
      if(!Array.isArray(values)||!values.some(v=>v!==null&&v!==undefined))continue;
      found++;
@@ -692,7 +680,6 @@ function renderCommonSubsidy(root){
      const planTitle=document.createElement('h4');planTitle.textContent=plans[i];card.append(planTitle);
      const amounts=document.createElement('div');amounts.className='policyplanamounts';
      types.forEach((t,j)=>{
-      if(selected.types.size&&!selected.types.has(t))return;
       const cell=document.createElement('div');cell.className='policyplancell';
       const label=document.createElement('span');label.textContent=t;
       const value=document.createElement('strong');value.textContent=money(values[j]);
