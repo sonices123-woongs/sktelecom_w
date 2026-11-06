@@ -757,7 +757,15 @@ function renderRetailPolicy(root){
   const modelRow=document.createElement('div');modelRow.className='policyretailmodelrow';
   const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
   const ranked=(data.salesRanking?.length?data.salesRanking:data.top||[]).map(x=>x.model);const modelOptions=[['','모델 선택'],...Object.keys(data.models).sort((a,b)=>{const ra=ranked.indexOf(a),rb=ranked.indexOf(b);return (ra<0?999999:ra)-(rb<0?999999:rb)||a.localeCompare(b,'ko',{numeric:true})}).map(name=>[name,name])];
-  for(const [value,label] of modelOptions){const option=document.createElement('option');option.value=value;option.textContent=label;modelFilter.append(option)}
+  function updateModelOptions(){
+   const selected=modelFilter.value,query=norm(search.value);
+   const matches=query?modelOptions.slice(1).filter(([value])=>norm(value).includes(query)):modelOptions.slice(1);
+   modelFilter.replaceChildren();
+   const first=document.createElement('option');first.value='';first.textContent=query?'검색 결과 '+matches.length+'개 · 모델 선택':'모델 선택';modelFilter.append(first);
+   for(const [value,label] of matches){const option=document.createElement('option');option.value=value;option.textContent=label;modelFilter.append(option)}
+   modelFilter.value=matches.some(([value])=>value===selected)?selected:'';
+  }
+  updateModelOptions();
   modelRow.append(search,modelFilter);
   const filters=document.createElement('div');filters.className='policyretailplanrow';
   const plan=document.createElement('input');plan.type='search';plan.placeholder='요금제명 검색';plan.setAttribute('aria-label','요금제명 검색');plan.className='policyretailsearch';
@@ -782,7 +790,7 @@ function renderRetailPolicy(root){
    const name=document.createElement('strong');name.textContent=(i+1)+'. '+item.model;
    const detail=document.createElement('p');detail.textContent=(item.kind==='choice'?'선택약정':'공통지원금')+' · '+item.plan+' · '+item.type;
    card.append(name,detail);top.append(card);
-   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';plan.value=item.plan;updatePlanOptions();planFilter.value=planItems.some(p=>p.name===item.plan)?item.plan:'';refresh();window.scrollTo({top:0,behavior:'smooth'})};
+   card.style.cursor='pointer';card.onclick=()=>{search.value=item.model;modelFilter.value='';updateModelOptions();plan.value=item.plan;updatePlanOptions();planFilter.value=planItems.some(p=>p.name===item.plan)?item.plan:'';refresh();window.scrollTo({top:0,behavior:'smooth'})};
   }
   if(!data.top?.length){const p=document.createElement('p');p.className='note';p.textContent='이번 달 일치하는 판매 자료가 없습니다.';top.append(p)}
   holder.append(top);if(noticeBox)holder.append(noticeBox);
@@ -832,7 +840,7 @@ function renderRetailPolicy(root){
     if(available.length){selectedContract=available.includes('common')?'common':available[0];switchContract()}
    }
   }
-  search.addEventListener('input',refresh);
+  search.addEventListener('input',()=>{modelFilter.value='';updateModelOptions();refresh()});
   plan.addEventListener('input',()=>{planFilter.value='';updatePlanOptions();refresh()});
   planFilter.addEventListener('change',()=>{if(planFilter.value)plan.value='';refresh()});
   modelFilter.addEventListener('change',()=>{if(modelFilter.value)search.value='';refresh()});
