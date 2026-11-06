@@ -12,7 +12,7 @@ export const columns=[['date','개통일'],['time','시간'],['model','모델명
 export const staffOrder=['이준모','박정우','하성수','김진성','이민호','우재용','직영','소사','박민수','맥스','범고래','신동준'];
 export function staffSort(a,b){const ai=staffOrder.indexOf(a),bi=staffOrder.indexOf(b);return (ai<0?999:ai)-(bi<0?999:bi)||a.localeCompare(b,'ko')}
 function includesChoice(choice,value){return !choice||(Array.isArray(choice)?!choice.length||choice.includes(value):choice===value)}
-export function filterSales(rows,f){return rows.filter(r=>includesChoice(f.date,r.date)&&includesChoice(f.activation,r.activation)&&includesChoice(f.staff,r.staff)&&includesChoice(f.seller,r.seller)&&((f.model||'').trim().length<3||[r.model,r.seller].some(v=>String(v||'').toLowerCase().includes(f.model.trim().toLowerCase()))))}
+export function filterSales(rows,f){return rows.filter(r=>includesChoice(f.date,r.date)&&includesChoice(f.activation,r.activation)&&includesChoice(f.staff,r.staff)&&includesChoice(f.seller,r.seller)&&((f.model||'').trim().length<2||(f.model.trim().length===2?String(r.seller||'').toLowerCase().includes(f.model.trim().toLowerCase()):[r.model,r.seller].some(v=>String(v||'').toLowerCase().includes(f.model.trim().toLowerCase())))))}
 export function sellerOptions(rows,staff){return [...new Set(rows.filter(r=>includesChoice(staff,r.staff)).map(r=>r.seller).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'))}
 export function mountSales(root,{user,access,owner,db,dbApi}){
  const scope=salesScope(user,access,owner),el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
@@ -33,7 +33,7 @@ export function mountSales(root,{user,access,owner,db,dbApi}){
  function field(key,label,type){const l=el('label'),n=el(type==='select'?'button':'input');l.setAttribute('aria-label',label);if(type==='select'){n.type='button';n.className='salesselect';n.setAttribute('aria-label',label+' 다중 선택');n.setAttribute('aria-haspopup','dialog');n.onclick=()=>openChoices(key,label);n.textContent=label}else{n.type=type;n.oninput=()=>{f[key]=n.value;page=1;paint()}}l.append(n);controls.append(l);inputs[key]=n;return n}
  field('date','개통일','select');field('activation','유형','select');field('staff','담당','select');field('seller','판매처','select');
  const searchline=el('div');searchline.className='salessearchline';
-const model=field('model','모델명','search');model.setAttribute('aria-label','모델명 또는 판매처 검색');model.placeholder='모델명·판매처 3자 이상 검색';model.autocomplete='off';searchline.append(model.parentElement);
+const model=field('model','모델명','search');model.setAttribute('aria-label','모델명 또는 판매처 검색');model.placeholder='모델명 3자·판매처 2자 이상 검색';model.autocomplete='off';searchline.append(model.parentElement);
  const reset=el('button','필터 초기화');reset.className='quiet salesreset';reset.onclick=()=>{for(const key of ['date','activation','staff','seller']){f[key]=[];summary(key)}f.model='';inputs.model.value='';choices('seller','seller',sellerOptions(rows,''));page=1;paint()};searchline.append(reset);
  root.append(controls,searchline,status,wrap,pager);
  const updateFilterHeight=()=>root.style.setProperty('--sales-filter-height',controls.getBoundingClientRect().height+'px');
