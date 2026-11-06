@@ -637,8 +637,18 @@ function renderCommonSubsidy(root){
    function refresh(){summary.textContent=set.size?name+' '+set.size+'개 선택':name+' 선택'}
    return details;
   }
-  multi('모델',keys,selected.models);
   form.append(search);
+  const modelFilter=document.createElement('select');modelFilter.setAttribute('aria-label','모델 선택');
+  function updateModelOptions(){
+   const query=clean(search.value),chosen=[...selected.models][0]||'';
+   const matches=keys.filter(name=>!query||clean(name).includes(query));
+   modelFilter.replaceChildren();
+   const first=document.createElement('option');first.value='';first.textContent=query?'검색 결과 '+matches.length+'개 · 모델 선택':'모델 선택';modelFilter.append(first);
+   for(const name of matches){const option=document.createElement('option');option.value=name;option.textContent=name;modelFilter.append(option)}
+   modelFilter.value=matches.includes(chosen)?chosen:'';
+  }
+  modelFilter.onchange=()=>{selected.models.clear();if(modelFilter.value)selected.models.add(modelFilter.value);lookup()};
+  form.append(modelFilter);
   multi('요금제',plans,selected.plans);
   multi('유형',types,selected.types);
   sticky.append(form);area.append(result,topArea);
@@ -694,7 +704,8 @@ function renderCommonSubsidy(root){
    }
    if(matches.length>displayed.length){const p=document.createElement('p');p.className='note';p.textContent='처음 30개 모델만 표시합니다. 검색어를 더 입력해 주세요.';result.append(p)}
   }
-  search.oninput=lookup;
+  search.oninput=()=>{selected.models.clear();updateModelOptions();lookup()};
+  updateModelOptions();
   for(const [index,item] of (data.top||[]).entries()){
    const card=document.createElement('article');card.className='salescompactcard';
    const name=document.createElement('strong');name.textContent=(index+1)+'. '+item.model;
