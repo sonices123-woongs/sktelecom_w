@@ -788,12 +788,12 @@ function renderRetailPolicy(root){
    const clean=n=>norm(String(n).replace(/\([^)]*\)/g,''));
    const exact=(subsidy.plans||[]).findIndex(n=>norm(n)===norm(selected.name)||clean(n)===clean(selected.name));
    if(exact>=0)return exact;
-   const fee=Number(selected.discountedFee);
+   const fee=Math.round(Number(selected.discountedFee));
    if(selected.discountedFee==null||!Number.isFinite(fee))return -1;
    const retailPlans=Object.values(data.plans||{});
    const candidates=(subsidy.plans||[]).map((name,index)=>{
     const matching=retailPlans.find(p=>norm(p.name)===norm(name)||clean(p.name)===clean(name));
-    return matching?.discountedFee!=null&&Number(matching.discountedFee)===fee?index:-1;
+    return matching?.discountedFee!=null&&Math.round(Number(matching.discountedFee))===fee?index:-1;
    }).filter(index=>index>=0);
    if(!candidates.length)return -1;
    const amounts=subsidy.models[modelKey];
