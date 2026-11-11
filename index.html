@@ -664,12 +664,38 @@ function renderCommonSubsidy(root){
  const info=document.createElement('p');info.className='note';info.textContent='공통지원금 자료를 불러오는 중…';sticky.append(info);
  const area=document.createElement('div');root.append(area);
  const url='https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app/publicPolicy/commonSubsidy.json';
- fetch(url).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(data=>{
+ const retailPromise=canViewPolicyCategory('retail')&&currentUser
+  ?currentUser.getIdToken().then(token=>fetch('https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app/retailPolicy.json?auth='+encodeURIComponent(token)).then(r=>r.ok?r.json():null)).catch(()=>null)
+  :Promise.resolve(null);
+ Promise.all([fetch(url).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}),retailPromise]).then(([data,retail])=>{
   if(!root.isConnected)return;
   if(!data?.plans||!data?.models){info.textContent='공통지원금 자료가 아직 연결되지 않았습니다.';return}
   info.textContent='공통지원금 · '+(data.month||'')+' 기준';info.classList.add('policydate');
   const clean=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
-  const keys=Object.keys(data.models),plans=data.plans,ranked=(data.top||[]).map(x=>x.model);
+  const keys=Object.keys(data.models),basePlans=data.plans,ranked=(data.top||[]).map(x=>x.model);
+  const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
+  const simple=v=>norm(String(v||'').replace(/\\([^)]*\\)/g,''));
+  const retailPlans=retail?.plans?Object.values(retail.plans).filter(p=>p&&p.name):[];
+  const plans=[...basePlans];
+  const seenPlans=new Set(plans.map(norm));
+  for(const p of retailPlans){if(!seenPlans.has(norm(p.name))){plans.push(p.name);seenPlans.add(norm(p.name))}}
+  // Support amount mapping only when a plan name matches, or same-fee candidates agree for this model.
+  function subsidyIndex(planName,modelName){
+   const exact=basePlans.findIndex(p=>norm(p)===norm(planName)||simple(p)===simple(planName));
+   if(exact>=0)return exact;
+   const selected=retailPlans.find(p=>norm(p.name)===norm(planName));
+   if(!selected||selected.discountedFee==null)return -1;
+   const fee=Math.round(Number(selected.discountedFee));
+   if(!Number.isFinite(fee))return -1;
+   const candidates=basePlans.map((name,i)=>{
+    const p=retailPlans.find(x=>norm(x.name)===norm(name)||simple(x.name)===simple(name));
+    return p?.discountedFee!=null&&Math.round(Number(p.discountedFee))===fee?i:-1;
+   }).filter(i=>i>=0);
+   if(!candidates.length)return -1;
+   const rows=data.models[modelName]||[];
+   const same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+   return candidates.every(i=>same(rows[i],rows[candidates[0]]))?candidates[0]:-1;
+  }
   const family=v=>clean(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   keys.sort((a,b)=>{
    const fa=family(a),fb=family(b);
@@ -739,8 +765,11 @@ function renderCommonSubsidy(root){
     for(let i=0;i<plans.length;i++){
      if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
      if(planQuery&&!clean(plans[i]).includes(planQuery))continue;
-     const values=data.models[name]?.[i];
-     if(!Array.isArray(values)||!values.some(v=>v!==null&&v!==undefined))continue;
+     const sourceIndex=subsidyIndex(plans[i],name);
+     const values=sourceIndex>=0?data.models[name]?.[sourceIndex]:null;
+     const hasValues=Array.isArray(values)&&values.some(v=>v!==null&&v!==undefined);
+     if(!hasValues&&sourceIndex>=0)continue;
+     if(!hasValues&&!selected.plans.size&&!planQuery)continue;
      found++;
      const card=document.createElement('section');card.className='policyplancard';
      const planTitle=document.createElement('h4');planTitle.textContent=plans[i];card.append(planTitle);
@@ -748,7 +777,7 @@ function renderCommonSubsidy(root){
      types.forEach((t,j)=>{
       const cell=document.createElement('div');cell.className='policyplancell';
       const label=document.createElement('span');label.textContent=t;
-      const value=document.createElement('strong');value.textContent=money(values[j]);
+      const value=document.createElement('strong');value.textContent=money(hasValues?values[j]:null);
       cell.append(label,value);amounts.append(cell);
      });
      card.append(amounts);content.append(card);
