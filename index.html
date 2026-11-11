@@ -679,22 +679,35 @@ function renderCommonSubsidy(root){
   const plans=[...basePlans];
   const seenPlans=new Set(plans.map(norm));
   for(const p of retailPlans){if(!seenPlans.has(norm(p.name))){plans.push(p.name);seenPlans.add(norm(p.name))}}
-  // Support amount mapping only when a plan name matches, or same-fee candidates agree for this model.
-  function subsidyIndex(planName,modelName){
-   const exact=basePlans.findIndex(p=>norm(p)===norm(planName)||simple(p)===simple(planName));
-   if(exact>=0)return exact;
-   const selected=retailPlans.find(p=>norm(p.name)===norm(planName));
-   if(!selected||selected.discountedFee==null)return -1;
-   const fee=Math.round(Number(selected.discountedFee));
-   if(!Number.isFinite(fee))return -1;
-   const candidates=basePlans.map((name,i)=>{
-    const p=retailPlans.find(x=>norm(x.name)===norm(name)||simple(x.name)===simple(name));
-    return p?.discountedFee!=null&&Math.round(Number(p.discountedFee))===fee?i:-1;
-   }).filter(i=>i>=0);
+  // Precompute plan mapping once; avoid repeated nested searches on every keystroke.
+  const retailByName=new Map();
+  for(const p of retailPlans){retailByName.set(norm(p.name),p);retailByName.set(simple(p.name),p)}
+  const baseByName=new Map();
+  basePlans.forEach((name,i)=>{baseByName.set(norm(name),i);baseByName.set(simple(name),i)});
+  const baseByFee=new Map();
+  basePlans.forEach((name,i)=>{
+   const p=retailByName.get(norm(name))||retailByName.get(simple(name));
+   if(p?.discountedFee==null)return;
+   const fee=Math.round(Number(p.discountedFee));
+   if(!Number.isFinite(fee))return;
+   if(!baseByFee.has(fee))baseByFee.set(fee,[]);
+   baseByFee.get(fee).push(i);
+  });
+  const planMatches=plans.map(name=>{
+   const direct=baseByName.get(norm(name))??baseByName.get(simple(name));
+   if(direct!==undefined)return {direct};
+   const p=retailByName.get(norm(name));
+   const fee=p?.discountedFee==null?NaN:Math.round(Number(p.discountedFee));
+   return {candidates:Number.isFinite(fee)?(baseByFee.get(fee)||[]):[]};
+  });
+  function subsidyIndex(planIndex,modelName){
+   const match=planMatches[planIndex];
+   if(match.direct!==undefined)return match.direct;
+   const candidates=match.candidates;
    if(!candidates.length)return -1;
    const rows=data.models[modelName]||[];
-   const same=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
-   return candidates.every(i=>same(rows[i],rows[candidates[0]]))?candidates[0]:-1;
+   const first=JSON.stringify(rows[candidates[0]]);
+   return candidates.every(i=>JSON.stringify(rows[i])===first)?candidates[0]:-1;
   }
   const family=v=>clean(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   keys.sort((a,b)=>{
@@ -746,6 +759,9 @@ function renderCommonSubsidy(root){
    topArea.hidden=active;result.replaceChildren();
    if(!active)return;
    if(!matches.length){const p=document.createElement('p');p.className='note';p.textContent='일치하는 모델이 없습니다.';result.append(p);return}
+   if(!selected.models.size&&!query&&(selected.plans.size||planQuery)){
+    const p=document.createElement('p');p.className='note';p.textContent='요금제를 검색했습니다. 지원금을 조회하려면 모델도 선택해 주세요.';result.append(p);return;
+   }
    const displayed=matches.slice(0,30);
    const familyCounts=new Map();
    for(const name of displayed)familyCounts.set(family(name),(familyCounts.get(family(name))||0)+1);
@@ -765,7 +781,7 @@ function renderCommonSubsidy(root){
     for(let i=0;i<plans.length;i++){
      if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
      if(planQuery&&!clean(plans[i]).includes(planQuery))continue;
-     const sourceIndex=subsidyIndex(plans[i],name);
+     const sourceIndex=subsidyIndex(i,name);
      const values=sourceIndex>=0?data.models[name]?.[sourceIndex]:null;
      const hasValues=Array.isArray(values)&&values.some(v=>v!==null&&v!==undefined);
      if(!hasValues&&sourceIndex>=0)continue;
