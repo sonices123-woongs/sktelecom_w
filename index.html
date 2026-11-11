@@ -676,10 +676,16 @@ function renderCommonSubsidy(root){
   const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
   const planGroups=data.planGroups||{};
   const groupIndices=new Map(basePlans.map((name,i)=>[norm(name),i]));
+  // Only actual tariff names belong in the visible selector; group headers are internal lookup keys.
   const plans=Object.values(data.planNames||{}).filter(Boolean);
-  const seenPlans=new Set(plans.map(norm));
-  for(const name of basePlans){if(!seenPlans.has(norm(name))){plans.push(name);seenPlans.add(norm(name))}}
-  const planMatches=plans.map(name=>{
+  const seenPlans=new Set();
+  const visiblePlans=plans.filter(name=>{
+   const key=norm(name);
+   if(seenPlans.has(key))return false;
+   seenPlans.add(key);
+   return true;
+  });
+  const planMatches=visiblePlans.map(name=>{
    const group=planGroups[norm(name)]||name;
    return groupIndices.get(norm(group))??-1;
   });
@@ -715,7 +721,7 @@ function renderCommonSubsidy(root){
   const planFilter=document.createElement('select');planFilter.setAttribute('aria-label','요금제 선택');
   function updatePlanOptions(){
    const query=clean(planSearch.value),chosen=[...selected.plans][0]||'';
-   const matches=plans.filter(name=>!query||clean(name).includes(query));
+   const matches=visiblePlans.filter(name=>!query||clean(name).includes(query));
    planFilter.replaceChildren();
    const first=document.createElement('option');first.value='';first.textContent=query?'검색 결과 '+matches.length+'개 · 요금제 선택':'요금제 선택';planFilter.append(first);
    for(const name of matches){const option=document.createElement('option');option.value=name;option.textContent=name;planFilter.append(option)}
@@ -755,9 +761,9 @@ function renderCommonSubsidy(root){
     const content=document.createElement('div');content.className='policyvariantcontent';wrapper.append(content);
     result.append(wrapper);
     let found=0;
-    for(let i=0;i<plans.length;i++){
-     if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
-     if(planQuery&&!clean(plans[i]).includes(planQuery))continue;
+    for(let i=0;i<visiblePlans.length;i++){
+     if(selected.plans.size&&!selected.plans.has(visiblePlans[i]))continue;
+     if(planQuery&&!clean(visiblePlans[i]).includes(planQuery))continue;
      const sourceIndex=subsidyIndex(i);
      const values=sourceIndex>=0?data.models[name]?.[sourceIndex]:null;
      const hasValues=Array.isArray(values)&&values.some(v=>v!==null&&v!==undefined);
@@ -765,7 +771,7 @@ function renderCommonSubsidy(root){
      if(!hasValues&&!selected.plans.size&&!planQuery)continue;
      found++;
      const card=document.createElement('section');card.className='policyplancard';
-     const planTitle=document.createElement('h4');planTitle.textContent=plans[i];card.append(planTitle);
+     const planTitle=document.createElement('h4');planTitle.textContent=visiblePlans[i];card.append(planTitle);
      const amounts=document.createElement('div');amounts.className='policyplanamounts';
      types.forEach((t,j)=>{
       const cell=document.createElement('div');cell.className='policyplancell';
