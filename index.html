@@ -674,41 +674,16 @@ function renderCommonSubsidy(root){
   const clean=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
   const keys=Object.keys(data.models),basePlans=data.plans,ranked=(data.top||[]).map(x=>x.model);
   const norm=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9가-힣]/g,'');
-  const simple=v=>norm(String(v||'').replace(/\\([^)]*\\)/g,''));
-  const retailPlans=retail?.plans?Object.values(retail.plans).filter(p=>p&&p.name):[];
-  const plans=[...basePlans];
+  const planGroups=data.planGroups||{};
+  const groupIndices=new Map(basePlans.map((name,i)=>[norm(name),i]));
+  const plans=Object.values(data.planNames||{}).filter(Boolean);
   const seenPlans=new Set(plans.map(norm));
-  for(const p of retailPlans){if(!seenPlans.has(norm(p.name))){plans.push(p.name);seenPlans.add(norm(p.name))}}
-  // Precompute plan mapping once; avoid repeated nested searches on every keystroke.
-  const retailByName=new Map();
-  for(const p of retailPlans){retailByName.set(norm(p.name),p);retailByName.set(simple(p.name),p)}
-  const baseByName=new Map();
-  basePlans.forEach((name,i)=>{baseByName.set(norm(name),i);baseByName.set(simple(name),i)});
-  const baseByFee=new Map();
-  basePlans.forEach((name,i)=>{
-   const p=retailByName.get(norm(name))||retailByName.get(simple(name));
-   if(p?.discountedFee==null)return;
-   const fee=Math.round(Number(p.discountedFee));
-   if(!Number.isFinite(fee))return;
-   if(!baseByFee.has(fee))baseByFee.set(fee,[]);
-   baseByFee.get(fee).push(i);
-  });
+  for(const name of basePlans){if(!seenPlans.has(norm(name))){plans.push(name);seenPlans.add(norm(name))}}
   const planMatches=plans.map(name=>{
-   const direct=baseByName.get(norm(name))??baseByName.get(simple(name));
-   if(direct!==undefined)return {direct};
-   const p=retailByName.get(norm(name));
-   const fee=p?.discountedFee==null?NaN:Math.round(Number(p.discountedFee));
-   return {candidates:Number.isFinite(fee)?(baseByFee.get(fee)||[]):[]};
+   const group=planGroups[norm(name)]||name;
+   return groupIndices.get(norm(group))??-1;
   });
-  function subsidyIndex(planIndex,modelName){
-   const match=planMatches[planIndex];
-   if(match.direct!==undefined)return match.direct;
-   const candidates=match.candidates;
-   if(!candidates.length)return -1;
-   const rows=data.models[modelName]||[];
-   const first=JSON.stringify(rows[candidates[0]]);
-   return candidates.every(i=>JSON.stringify(rows[i])===first)?candidates[0]:-1;
-  }
+  function subsidyIndex(planIndex){return planMatches[planIndex]??-1}
   const family=v=>clean(v).replace(/(?:1024|512|256|128|64|32)(?:GB|GW|GG|G)?$|(?:1|2)T(?:B|W)?$/,'');
   keys.sort((a,b)=>{
    const fa=family(a),fb=family(b);
@@ -781,7 +756,7 @@ function renderCommonSubsidy(root){
     for(let i=0;i<plans.length;i++){
      if(selected.plans.size&&!selected.plans.has(plans[i]))continue;
      if(planQuery&&!clean(plans[i]).includes(planQuery))continue;
-     const sourceIndex=subsidyIndex(i,name);
+     const sourceIndex=subsidyIndex(i);
      const values=sourceIndex>=0?data.models[name]?.[sourceIndex]:null;
      const hasValues=Array.isArray(values)&&values.some(v=>v!==null&&v!==undefined);
      if(!hasValues&&sourceIndex>=0)continue;
@@ -880,25 +855,13 @@ function renderRetailPolicy(root){
   const plan=document.createElement('input');plan.type='search';plan.placeholder='요금제명 검색';plan.setAttribute('aria-label','요금제명 검색');plan.className='policyretailsearch';
   const planFilter=document.createElement('select');planFilter.setAttribute('aria-label','요금제 선택');
   const planRanks=(data.planRanking||[]).map(x=>norm(x.name));
-  // 요금제명 우선 조회, 실패할 때만 할인 후 요금으로 동일 지원금 후보를 찾는다.
+  // 공통지원금은 요금제별 그룹명으로만 연결한다. 이름 유사도/할인요금 추정은 사용하지 않는다.
+  const subsidyGroupIndices=new Map((subsidy?.plans||[]).map((name,index)=>[norm(name),index]));
   function findSubsidyPlanIndex(selected,modelName){
    if(!subsidy?.models||!selected)return -1;
-   const modelKey=Object.keys(subsidy.models).find(n=>norm(n)===norm(modelName));
-   if(!modelKey)return -1;
-   const clean=n=>norm(String(n).replace(/\([^)]*\)/g,''));
-   const exact=(subsidy.plans||[]).findIndex(n=>norm(n)===norm(selected.name)||clean(n)===clean(selected.name));
-   if(exact>=0)return exact;
-   const fee=Math.round(Number(selected.discountedFee));
-   if(selected.discountedFee==null||!Number.isFinite(fee))return -1;
-   const retailPlans=Object.values(data.plans||{});
-   const candidates=(subsidy.plans||[]).map((name,index)=>{
-    const matching=retailPlans.find(p=>norm(p.name)===norm(name)||clean(p.name)===clean(name));
-    return matching?.discountedFee!=null&&Math.round(Number(matching.discountedFee))===fee?index:-1;
-   }).filter(index=>index>=0);
-   if(!candidates.length)return -1;
-   const amounts=subsidy.models[modelKey];
-   const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-   return candidates.every(index=>same(amounts[index],amounts[candidates[0]]))?candidates[0]:-1;
+   const group=subsidy.planGroups?.[norm(selected.name)];
+   if(!group)return -1;
+   return subsidyGroupIndices.get(norm(group))??-1;
   }
   const planItems=Object.values(data.plans||{}).sort((a,b)=>{const ai=planRanks.indexOf(norm(a.name)),bi=planRanks.indexOf(norm(b.name));return (ai<0?999999:ai)-(bi<0?999999:bi)||a.name.localeCompare(b.name,'ko')});
   function updatePlanOptions(){
