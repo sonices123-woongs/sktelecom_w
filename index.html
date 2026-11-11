@@ -897,8 +897,8 @@ function renderRetailPolicy(root){
    const counts={};names.forEach(n=>counts[family(n)]=(counts[family(n)]||0)+1);
    for(const name of names){
     const model=data.models[name],variants=counts[family(name)]>1;
-    const wrap=document.createElement(variants?'details':'div');wrap.className=variants?'policyvariant':'policysinglemodel';
-    const head=document.createElement(variants?'summary':'h3');head.className='policyresultmodel';
+    const wrap=document.createElement('details');wrap.className='policyvariant';
+    const head=document.createElement('summary');head.className='policyresultmodel';
     const label=document.createElement('span');label.className='policy-model-name';label.textContent=name;
     const price=document.createElement('span');price.className='policy-model-price';price.textContent='출고가 '+money(model.price);
     head.append(label,price);wrap.append(head);
