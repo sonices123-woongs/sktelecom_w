@@ -734,8 +734,11 @@ function renderCommonSubsidy(root){
    topArea.hidden=active;result.replaceChildren();
    if(!active)return;
    if(!matches.length){const p=document.createElement('p');p.className='note';p.textContent='일치하는 모델이 없습니다.';result.append(p);return}
-   if(!selected.models.size&&!query&&(selected.plans.size||planQuery)){
-    const p=document.createElement('p');p.className='note';p.textContent='요금제를 검색했습니다. 지원금을 조회하려면 모델도 선택해 주세요.';result.append(p);return;
+   if(!planQuery&&!selected.plans.size){
+    const p=document.createElement('p');p.className='note';p.textContent='요금제를 검색하거나 선택하면 지원금이 표시됩니다.';result.append(p);return;
+   }
+   if(!selected.models.size&&!query){
+    const p=document.createElement('p');p.className='note';p.textContent='지원금을 조회하려면 모델도 검색하거나 선택해 주세요.';result.append(p);return;
    }
    const displayed=matches.slice(0,30);
    const familyCounts=new Map();
