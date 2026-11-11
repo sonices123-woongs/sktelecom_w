@@ -744,10 +744,9 @@ function renderCommonSubsidy(root){
    const familyCounts=new Map();
    for(const name of displayed)familyCounts.set(family(name),(familyCounts.get(family(name))||0)+1);
    for(const name of displayed){
-    const hasVariants=familyCounts.get(family(name))>1;
-    const wrapper=hasVariants?document.createElement('details'):document.createElement('div');
-    if(hasVariants)wrapper.className='policyvariant';else wrapper.className='policysinglemodel';
-    const heading=document.createElement(hasVariants?'summary':'h3');
+    const wrapper=document.createElement('details');
+    wrapper.className='policyvariant';
+    const heading=document.createElement('summary');
     heading.className='policyresultmodel';
     const modelLabel=document.createElement('span');modelLabel.className='policy-model-name';modelLabel.textContent=name;
     const priceLabel=document.createElement('span');priceLabel.className='policy-model-price';priceLabel.textContent='출고가 '+money(data.prices?.[name]);
