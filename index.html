@@ -347,7 +347,62 @@ $('homeSession').append(document.querySelector('.session'));
 let auth=null,api=null,currentUser=null,mode='welcome',category=null,busy=false;
 const titles={products:'상품소개',policy:'정책',sales:'판매',settlement:'정산',inventory:'재고'};
 
+// SKW 내부 화면을 브라우저/WebView 뒤로 가기 기록에 연결
+let skwPolicyDetail=null;
+let skwRestoringNavigation=false;
+let skwNavigationTimer=null;
+function skwScreenState(){
+ const page=['welcome','login','workspace'].find(id=>!$(id).hidden)||'welcome';
+ return {page,mode,menu:activeMenu,category,wirelessFilter,articleOpen,articlePage,selectedPost,
+  mobileDetail,policyDetail:skwPolicyDetail};
+}
+function skwScreenKey(state){
+ return JSON.stringify(state);
+}
+function skwRecordNavigation(){
+ if(skwRestoringNavigation)return;
+ clearTimeout(skwNavigationTimer);
+ skwNavigationTimer=setTimeout(()=>{
+  if(skwRestoringNavigation)return;
+  const state=skwScreenState(),key=skwScreenKey(state);
+  const previous=history.state?.skwScreen;
+  if(previous&&skwScreenKey(previous)===key)return;
+  if(!previous){history.replaceState({skwScreen:state},'',location.href);return}
+  history.pushState({skwScreen:state},'',location.href);
+ },0);
+}
+window.addEventListener('popstate',event=>{
+ const state=event.state?.skwScreen;
+ if(!state)return;
+ clearTimeout(skwNavigationTimer);
+ skwRestoringNavigation=true;
+ try{
+  mode=state.mode==='guest'?'guest':state.mode==='member'?'member':'welcome';
+  category=state.category||null;
+  wirelessFilter=state.wirelessFilter||'all';
+  articleOpen=!!state.articleOpen;
+  articlePage=state.articlePage===2?2:1;
+  selectedPost=state.selectedPost||'a18';
+  mobileDetail=!!state.mobileDetail;
+  if(state.page==='workspace'){
+   show('workspace');
+   // show()는 mobileDetail을 초기화하므로 복원
+   mobileDetail=!!state.mobileDetail;
+   render(canUseMenu(state.menu)?state.menu:'products');
+   if(state.menu==='policy'&&state.policyDetail){
+    const detail=policyCategories.find(item=>item[0]===state.policyDetail);
+    if(detail&&canViewPolicyCategory(detail[0]))renderPolicySection($('content'),detail[0],detail[1]);
+   }
+  }else{
+   show(state.page==='login'?'login':'welcome');
+  }
+  window.scrollTo(0,0);
+ }finally{
+  setTimeout(()=>{skwRestoringNavigation=false},0);
+ }
+});
 let postSearch='';
+skwRecordNavigation();
 let wirelessFilter='all',articleOpen=false,articlePage=1,selectedPost='a18';
 
 let novemberCards=[{"name":"삼성카드 T프리미엄","rows":[[80,25000,35000],[160,40000,50000],[250,60000,70000]],"conditions":["삼성카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 50만원 이상 결제 조건, 전 모델 대상.","라이트할부 승인일 기준. 과거 해당 카드 청구할인 수혜 이력 등에 따라 추가할인 대상에서 제외될 수 있습니다."]},{"name":"현대카드 M3 T라이트2","rows":[[50,15000,33000],[100,25000,35000]],"conditions":["현대카드 신규 또는 6개월 이상 무실적 고객 대상. M3 T라이트2 최초 발급 조건.","라이트할부 5만원 이상 결제 조건. 카드 발급 승인일 기준.","해당 카드 발급·할인 수혜 이력이 있으면 기본할인 또는 프로모션 적용이 제한될 수 있습니다."]},{"name":"NH카드 T라이트","rows":[[40,11000,23000],[80,17000,29000]],"conditions":["NH농협카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 라이트할부 승인일 기준이며 실물 카드 발급 후 등록 가능.","월 할부금액이 최종 할인액보다 적으면 월 할부금액까지만 할인됩니다."]},{"name":"삼성카드 T라이트","rows":[[40,10000,22000],[80,15000,23000],[120,20000,24000]],"conditions":["삼성카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 10만원 이상 결제 조건. 삼성전자 갤럭시 단말 대상(태블릿·키즈폰·노트북 포함).","라이트할부 승인일 기준. 과거 해당 카드 청구할인 수혜 이력 등에 따라 추가할인 대상에서 제외될 수 있습니다."]},{"name":"우리카드 T라이트","rows":[[40,10000,24000],[80,15000,29000],[120,20000,31000]],"conditions":["우리카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 10만원 이상 결제 조건. 카드신청 전산 접수 완료일 기준.","기본할인은 라이트할부 할부금에서, 추가할인은 결제대금 총액에서 차감됩니다."]},{"name":"KB카드 T라이트","rows":[[30,8000,25000],[70,12000,26000],[100,14000,27000]],"conditions":["KB국민카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 라이트할부 승인일 기준."]},{"name":"신한카드 T라이트","rows":[[30,10000,22000],[70,15000,24000]],"conditions":["신한카드 신규 또는 6개월 이상 무실적 고객 대상. 신한 T라이트 최초 발급 조건. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 해외브랜드 Mastercard만 적용.","카드 발급 승인일 기준."]},{"name":"신한카드 파인애플","rows":[[30,10000,22000],[70,15000,24000]],"conditions":["신한카드 신규 또는 6개월 이상 무실적 고객 대상. 신한 파인애플 최초 발급 조건. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 해외브랜드 VISA만 적용.","카드 발급 승인일 기준."]}];
@@ -569,7 +624,7 @@ layer.hidden=!visible;
 const id=visible?(currentUser.email?.split('@')[0]||currentUser.uid):'';
 for(const mark of layer.children)mark.textContent=id;
 }
-function show(page){mobileDetail=false;document.body.classList.remove("mobile-detail");stopSales();stopSales=()=>{};document.body.classList.toggle('workspaceview',page==='workspace');const session=document.querySelector('.session');(page==='workspace'?$('workspaceSession'):$('homeSession')).append(session);$('homeSession').hidden=page!=='welcome';for(const id of ['welcome','login','workspace'])$(id).hidden=id!==page;updateWatermark();window.scrollTo(0,0)}
+function show(page){skwPolicyDetail=null;skwRecordNavigation();mobileDetail=false;document.body.classList.remove("mobile-detail");stopSales();stopSales=()=>{};document.body.classList.toggle('workspaceview',page==='workspace');const session=document.querySelector('.session');(page==='workspace'?$('workspaceSession'):$('homeSession')).append(session);$('homeSession').hidden=page!=='welcome';for(const id of ['welcome','login','workspace'])$(id).hidden=id!==page;updateWatermark();window.scrollTo(0,0);skwRecordNavigation()}
 function home(){resetProducts();mode='welcome';category=null;show('welcome')}
 function workspace(guest=false){resetProducts();mode=guest?'guest':'member';category=null;show('workspace');render('products')}
 const policyCategories=[
@@ -878,6 +933,7 @@ function renderRetailPolicy(root){
 }
 
 function renderPolicySection(root,id,title){
+ skwPolicyDetail=id;skwRecordNavigation();
  if(!canViewPolicyCategory(id)){render('policy');return}
  root.replaceChildren();
  const back=document.createElement('button');back.type='button';back.className='quiet';back.textContent='← 정책 목록';back.onclick=()=>render('policy');
@@ -891,7 +947,7 @@ function renderPolicySection(root,id,title){
   if(id==='common')renderCommonSubsidy(root);else renderRetailPolicy(root);
  }else root.append(back,h,note);
 }
-function render(key){stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);const mobileTitle=$('mobilePageTitle');
+function render(key){skwPolicyDetail=null;skwRecordNavigation();stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);const mobileTitle=$('mobilePageTitle');
 mobileTitle.replaceChildren();
 if(key==='products'&&category){
  const parent=document.createElement('button');parent.type='button';parent.className='policyheaderlink';parent.textContent='상품소개';
@@ -900,7 +956,7 @@ if(key==='products'&&category){
  mobileTitle.append(parent,child);
 }else mobileTitle.textContent=key==='users'?'사용자 관리':titles[key];$('workspaceTitle').textContent=key==='users'?'사용자 관리':titles[key];$('modeBadge').textContent=mode==='guest'?'게스트':isCardAdmin()?'관리자':accessLoaded?(memberAccess?.active===true?'승인 사용자':memberAccess?'이용 중지':'승인 대기'):'권한 확인 중';$('menu').replaceChildren();for(const [id,title] of Object.entries(titles)){if(isWorkspaceGuest()&&id!=='products'&&id!=='policy')continue;if(mode==='member'&&accessLoaded&&memberAccess?.active===true&&!isCardAdmin()&&id!=='products'&&!canUseMenu(id))continue;const b=document.createElement('button');b.textContent=title;b.className=id===key?'active':'';b.setAttribute('aria-current',id===key?'page':'false');if(id!=='products'&&!canUseMenu(id)){b.disabled=true;b.textContent=title+' 🔒';b.title='관리자가 이용 권한을 부여한 후 사용할 수 있습니다.';}b.onclick=()=>openMenuPage(id);$('menu').append(b)}
 if(canManageUsers()&&mode==='member'){const manage=action('사용자 관리',()=>openMenuPage('users'),'quiet');manage.setAttribute('aria-current',key==='users'?'page':'false');$('menu').append(manage)}
-const content=$('content');content.replaceChildren();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isWorkspaceGuest()&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
+const content=$('content');content.replaceChildren();skwRecordNavigation();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isWorkspaceGuest()&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
 if(isWorkspaceGuest()&&mode==='member'&&workspaceStatusReady&&!workspaceEnabled){const banner=document.createElement('p');banner.className='cardnotice';banner.textContent='내부 업무공간이 일시 중단되었습니다. 상품소개와 공통지원금은 계속 이용할 수 있습니다.';content.append(banner)}
 if(key==='products'&&!category){const grid=document.createElement('div');grid.className='grid';for(const [type,title,desc] of [['wireless','무선','무선 상품 안내와 상담에 활용할 세일즈톡'],['wired','유선','인터넷·TV 등 유선 상품과 상담 안내']]){const b=document.createElement('button');b.className='card';b.innerHTML='<span class="producticon" aria-hidden="true"><img src="./assets/'+type+'-icon.png" alt="" width="96" height="96"></span><strong>'+title+'</strong><p>'+desc+'</p><span class="arrow">자세히 보기 →</span>';b.onclick=()=>{resetProducts();category=type;render('products')};grid.append(b)}content.append(grid);return}
 if(key==='products'){renderProducts(content);return}
