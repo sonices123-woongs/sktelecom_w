@@ -577,12 +577,23 @@ const policyCategories=[
  ['wholesale','도매단가표'],
  ['common','공통지원금']
 ];
+function canViewPolicyCategory(id){
+ if(id==='common')return true;
+ if(isWorkspaceGuest()||mode!=='member'||!currentUser||!canUseMenu('policy'))return false;
+ if(isCardAdmin())return true;
+ const username=String(memberAccess?.username||currentUser.email?.split('@')[0]||'').toUpperCase();
+ if(username.startsWith('D')&&canManageUsers())return true;
+ if(id==='retail')return username.startsWith('D');
+ if(id==='wholesale')return username.startsWith('P');
+ return false;
+}
 function renderPolicyCategories(root){
  const guest=isWorkspaceGuest();
  const grid=document.createElement('div');grid.className='grid policycategorygrid';
  const heading=document.createElement('p');heading.className='note';heading.textContent=guest?'게스트는 공통지원금을 확인할 수 있습니다.':'확인할 정책 항목을 선택하세요.';root.append(heading);
  for(const [id,title] of policyCategories){
-  const allowed=!guest||id==='common';
+  if(!canViewPolicyCategory(id))continue;
+  const allowed=true;
   const button=document.createElement('button');button.type='button';button.className='card policycategorycard';
   const titleNode=document.createElement('strong');titleNode.textContent=title;
   const arrow=document.createElement('span');arrow.className='arrow';arrow.textContent=allowed?'자세히 보기 →':'로그인 후 이용 🔒';
@@ -708,7 +719,7 @@ function renderCommonSubsidy(root){
 
 function renderRetailPolicy(root){
  const info=document.createElement('p');info.className='note';info.textContent='소매단가표를 불러오는 중…';root.append(info);
- if(isWorkspaceGuest()||mode!=='member'||!currentUser||!canUseMenu('policy')){info.textContent='로그인 및 정책 조회 권한이 필요합니다.';return}
+ if(!canViewPolicyCategory('retail')){info.textContent='소매단가표 조회 권한이 없습니다.';return}
  const holder=document.createElement('div');root.append(holder);const sticky=document.createElement('div');sticky.className='policyretailsticky';holder.append(sticky);
  const db='https://sktelecom-w-default-rtdb.asia-southeast1.firebasedatabase.app';
  const money=v=>v==null?'자료 없음':Number(v).toLocaleString('ko-KR')+'원';
@@ -847,6 +858,7 @@ function renderRetailPolicy(root){
 }
 
 function renderPolicySection(root,id,title){
+ if(!canViewPolicyCategory(id)){render('policy');return}
  root.replaceChildren();
  const back=document.createElement('button');back.type='button';back.className='quiet';back.textContent='← 정책 목록';back.onclick=()=>render('policy');
  const h=document.createElement('h2');h.textContent=title;
