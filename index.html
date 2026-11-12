@@ -398,6 +398,7 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 
 .skw-sale-caution{font-size:12px;line-height:1.65;color:#854d0e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:11px 12px;margin:18px 0}
 .skw-quote-verified{font-size:12px;line-height:1.6;background:#eff6ff;color:#1e40af;padding:11px;border-radius:10px}
+.skw-wired-contract{display:inline-flex;align-items:center;max-width:100%;font-size:12px!important;font-weight:800;color:#1e40af!important;background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;padding:5px 9px;margin:5px 0 7px!important;line-height:1.4!important}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -788,7 +789,7 @@ const skwWiredTv=[
 ];
 function renderWiredPlans(root){
  const section=document.createElement('section');section.className='skw-wired-wrap';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 유선</span><h2>유선 요금제</h2><p>제공 자료 기준 · 3년 약정 / 부가세 포함</p></div><nav class="skw-rate-groups" aria-label="유선 요금제 종류"></nav><div class="skw-wired-results"></div><p class="skw-rate-note">※ 요금은 제공된 이미지 기준입니다. 결합·장비·설치 조건에 따라 실제 청구 금액이 다를 수 있으며 가입 전 최신 기준을 확인하세요.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 유선</span><h2>유선 요금제</h2><p class="skw-wired-contract">3년 약정 기준 · 부가세 포함</p></div><nav class="skw-rate-groups" aria-label="유선 요금제 종류"></nav><div class="skw-wired-results"></div><p class="skw-rate-note">※ 요금은 제공된 이미지 기준입니다. 결합·장비·설치 조건에 따라 실제 청구 금액이 다를 수 있으며 가입 전 최신 기준을 확인하세요.</p>';
  root.append(section);
  const nav=section.querySelector('nav'),results=section.querySelector('.skw-wired-results');
  let group='인터넷';
@@ -880,7 +881,7 @@ const skwFamilyBundleDiscount=[
 ];
 function renderSetTopCatalog(root){
  const wrap=document.createElement('section');wrap.className='skw-wired-wrap skw-settop-wrap';
- wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · B tv</span><h2>셋톱박스 요금제</h2><p>월 이용료 · 3년 약정 기준 · 부가세 포함</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 기종별 제공 기능과 케어서비스 할인은 신청 조건에 따라 달라질 수 있어요. 현장 설치 가능 여부와 이용 조건을 확인하세요.</p>';
+ wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · B tv</span><h2>셋톱박스 요금제</h2><p class="skw-wired-contract">월 이용료 · 3년 약정 기준 · 부가세 포함</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 기종별 제공 기능과 케어서비스 할인은 신청 조건에 따라 달라질 수 있어요. 현장 설치 가능 여부와 이용 조건을 확인하세요.</p>';
  root.append(wrap);const grid=wrap.querySelector('.skw-rate-results');
  for(const model of skwSetTopModels){
   const card=document.createElement('article');card.className='skw-rate-card';
@@ -936,7 +937,7 @@ function skwInfoCard(title,description,rows,detailLines=[]){
 }
 function renderSharedFamilyBundle(root){
  const section=document.createElement('section');section.className='skw-wired-wrap skw-bundle-wrap';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">무선 · 유선 공통</span><h2>요즘가족결합</h2><p>인터넷 종류·휴대폰 회선 수별 상세 할인표</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 제공 자료의 인터넷/IPTV 3년 약정·부가세 포함 기준. 휴대폰 단독 결합표(2회선 6,000원 / 3회선 15,000원 / 4회선 20,000원)와 인터넷/IPTV 추가 결합표의 휴대폰 할인 금액은 다릅니다. 아래는 인터넷/IPTV 추가 결합표를 적용한 금액입니다. 가입 전 결합 자격·할인 기간·상품별 적용 조건을 확인하세요.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">무선 · 유선 공통</span><h2>요즘가족결합</h2><p class="skw-wired-contract">인터넷·IPTV 3년 약정 기준 · 부가세 포함</p><p>인터넷 종류·휴대폰 회선 수별 상세 할인표</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 제공 자료의 인터넷/IPTV 3년 약정·부가세 포함 기준. 휴대폰 단독 결합표(2회선 6,000원 / 3회선 15,000원 / 4회선 20,000원)와 인터넷/IPTV 추가 결합표의 휴대폰 할인 금액은 다릅니다. 아래는 인터넷/IPTV 추가 결합표를 적용한 금액입니다. 가입 전 결합 자격·할인 기간·상품별 적용 조건을 확인하세요.</p>';
  root.append(section);
  const grid=section.querySelector('.skw-rate-results');
  for(const [key,item] of Object.entries(skwFamilyDiscountMatrix)){
@@ -967,7 +968,7 @@ function renderWiredInstallation(root){
 }
 function renderWiredQuote(root){
  const section=document.createElement('section');section.className='skw-wired-wrap skw-quote';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 요금 자동 계산</span><h2>요금정리</h2><p>상품을 선택하면 예상 월 요금과 할인 내역이 자동 계산됩니다.</p></div><div class="skw-quote-fields"></div><div class="skw-quote-summary" aria-live="polite"></div><p class="skw-rate-note">※ 제공된 요금표 기준 단순 예상 계산입니다. 인터넷/B tv는 3년 약정 기준으로, 휴대폰 요금제·셋톱 장비할인·Wi-Fi·추가 회선·부가서비스 등에 따라 실청구액이 달라집니다. 휴대폰 결합 할인은 휴대폰 요금에 반영되므로 유선 청구액에서 중복 차감하지 않습니다. 이 계산기는 참고용이며 실제 판매 전 SK텔레콤 공식 판매정책·상담 시스템의 적용 요금과 할인 조건을 반드시 다시 확인하세요.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 요금 자동 계산</span><h2>요금정리</h2><p class="skw-wired-contract">3년 약정 기준 · 부가세 포함</p><p>상품을 선택하면 예상 월 요금과 할인 내역이 자동 계산됩니다.</p></div><div class="skw-quote-fields"></div><div class="skw-quote-summary" aria-live="polite"></div><p class="skw-rate-note">※ 제공된 요금표 기준 단순 예상 계산입니다. 인터넷/B tv는 3년 약정 기준으로, 휴대폰 요금제·셋톱 장비할인·Wi-Fi·추가 회선·부가서비스 등에 따라 실청구액이 달라집니다. 휴대폰 결합 할인은 휴대폰 요금에 반영되므로 유선 청구액에서 중복 차감하지 않습니다. 이 계산기는 참고용이며 실제 판매 전 SK텔레콤 공식 판매정책·상담 시스템의 적용 요금과 할인 조건을 반드시 다시 확인하세요.</p>';
  root.append(section);
  const fields=section.querySelector('.skw-quote-fields'),summary=section.querySelector('.skw-quote-summary');
  const addField=(name,choices)=>{
