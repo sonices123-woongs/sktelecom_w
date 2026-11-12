@@ -396,6 +396,8 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
  #content>.skw-product-tabs button{font-size:12px;padding:7px 2px}
 }
 
+.skw-sale-caution{font-size:12px;line-height:1.65;color:#854d0e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:11px 12px;margin:18px 0}
+.skw-quote-verified{font-size:12px;line-height:1.6;background:#eff6ff;color:#1e40af;padding:11px;border-radius:10px}
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -908,8 +910,8 @@ const skwFamilyDiscountMatrix={
 };
 const skwInstallationFees=[
  ['인터넷 단독',36300],['인터넷 + 전화 함께 설치',30800],
- ['인터넷 + TV 함께 설치',34100],['B tv 단독',34100],
- ['B tv 인터넷과 함께 설치',22000],['B tv 2번째 회선부터',17600],
+ ['인터넷 + TV 동시 설치 시 인터넷 출동비',34100],['B tv 단독',34100],
+ ['B tv 인터넷과 동시 설치 시 B tv 출동비',22000],['B tv 2번째 회선부터',17600],
  ['Wi-Fi 단독',19800],['Wi-Fi 인터넷과 함께 설치',0]
 ];
 function skwPrice(n){return Number(n).toLocaleString('ko-KR')+'원'}
@@ -956,13 +958,16 @@ function renderSharedFamilyBundle(root){
 }
 function renderWiredInstallation(root){
  const section=document.createElement('section');section.className='skw-wired-wrap';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 설치</span><h2>출동비 안내</h2><p>출동비는 월 요금이 아닌 설치 시 1회 발생하는 비용입니다.</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 평일 18시 이후, 주말·공휴일 설치 등에는 출동비 할증이 발생할 수 있습니다. 정확한 설치 구성과 청구 금액을 확인하세요.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 설치</span><h2>출동비 안내</h2><p>출동비는 월 요금이 아닌 설치 시 1회 발생하는 비용입니다.</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 평일 18시 이후, 주말·공휴일 설치 등에는 출동비 할증이 발생할 수 있습니다. 인터넷과 B tv를 함께 설치해도 출동비는 각각 발생합니다(예: 인터넷 34,100원 + B tv 22,000원 = 합계 56,100원). 추가 회선·설치 작업·청구 시점에 따라 실제 금액은 달라질 수 있으니 SK텔레콤 판매정책을 확인하세요.</p>';
  root.append(section);const grid=section.querySelector('.skw-rate-results');
  for(const [name,fee] of skwInstallationFees)grid.append(skwInfoCard(name,'설치 시 1회 청구',[['출동비',fee===0?'무료':skwPrice(fee),true]]));
+ grid.prepend(skwInfoCard('인터넷 + B tv 동시 설치','회사 상담 화면 기준으로 항목별 출동비가 각각 청구됩니다.',[
+  ['인터넷 출동비','34,100원'],['B tv 출동비','22,000원'],['합계','56,100원',true]
+ ],['평일 오후 6시 이후 또는 주말·공휴일은 출동비에 추가 할증이 발생할 수 있습니다.','부가 회선·특수 설치·출장 조건에 따라 실제 출동비가 달라질 수 있습니다.']));
 }
 function renderWiredQuote(root){
  const section=document.createElement('section');section.className='skw-wired-wrap skw-quote';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 요금 자동 계산</span><h2>요금정리</h2><p>상품을 선택하면 예상 월 요금과 할인 내역이 자동 계산됩니다.</p></div><div class="skw-quote-fields"></div><div class="skw-quote-summary" aria-live="polite"></div><p class="skw-rate-note">※ 제공된 요금표 기준 단순 예상 계산입니다. 인터넷/B tv는 3년 약정 기준으로, 휴대폰 요금제·셋톱 장비할인·Wi-Fi·추가 회선·부가서비스 등에 따라 실청구액이 달라집니다. 휴대폰 결합 할인은 휴대폰 요금에 반영되므로 유선 청구액에서 중복 차감하지 않습니다. 실제 청약 전 확인이 필요합니다.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 요금 자동 계산</span><h2>요금정리</h2><p>상품을 선택하면 예상 월 요금과 할인 내역이 자동 계산됩니다.</p></div><div class="skw-quote-fields"></div><div class="skw-quote-summary" aria-live="polite"></div><p class="skw-rate-note">※ 제공된 요금표 기준 단순 예상 계산입니다. 인터넷/B tv는 3년 약정 기준으로, 휴대폰 요금제·셋톱 장비할인·Wi-Fi·추가 회선·부가서비스 등에 따라 실청구액이 달라집니다. 휴대폰 결합 할인은 휴대폰 요금에 반영되므로 유선 청구액에서 중복 차감하지 않습니다. 이 계산기는 참고용이며 실제 판매 전 SK텔레콤 공식 판매정책·상담 시스템의 적용 요금과 할인 조건을 반드시 다시 확인하세요.</p>';
  root.append(section);
  const fields=section.querySelector('.skw-quote-fields'),summary=section.querySelector('.skw-quote-summary');
  const addField=(name,choices)=>{
@@ -1004,8 +1009,10 @@ function renderWiredQuote(root){
   const boxPlan=box.value===''?null:skwSetTopModels[Number(box.value)];
   const n=Number(phone.value)||0;
   const baseInternet=internetPlan?internetPlan[2]:0;
-  const baseTv=tvPlan?(opt.value==='bundle'?tvPlan[2]:tvPlan[1]):0;
-  const baseBox=boxPlan?settopPrice(boxPlan.fee):0;
+  const verifiedAllSmart3=!!(internetPlan&&tvPlan&&boxPlan&&tvPlan[0]==='B tv All'&&boxPlan.name==='Smart 3'&&opt.value==='regular');
+  // 회사 상담 시스템 비교 사례: B tv All + Smart 3 패키지 23,100원(셋톱 요금 포함)
+  const baseTv=verifiedAllSmart3?23100:(tvPlan?(opt.value==='bundle'?tvPlan[2]:tvPlan[1]):0);
+  const baseBox=verifiedAllSmart3?0:(boxPlan?settopPrice(boxPlan.fee):0);
   const matrix=internetPlan?skwFamilyDiscountMatrix[bundleKey(internetPlan)]:null;
   const internetDiscount=n>0&&matrix?matrix.internet:0;
   const iptvDiscount=n>0&&matrix&&tvPlan&&opt.value==='regular'?matrix.iptv:0;
@@ -1019,7 +1026,7 @@ function renderWiredQuote(root){
   for(const [label,value] of [
    ['인터넷 월정액',skwPrice(baseInternet)],
    ['B tv 월정액',skwPrice(baseTv)],
-   ['셋톱박스 월정액',skwPrice(baseBox)],
+   ['셋톱박스 월정액',verifiedAllSmart3?'패키지 금액에 포함':skwPrice(baseBox)],
    ['인터넷 가족결합 할인','-'+skwPrice(internetDiscount)],
    ['IPTV 가족결합 할인','-'+skwPrice(iptvDiscount)],
    ['휴대폰 결합 할인 (휴대폰 청구분)','-'+skwPrice(mobileDiscount)]
@@ -1031,14 +1038,21 @@ function renderWiredQuote(root){
   }else{
    const hint=document.createElement('p');hint.className='skw-quote-warning';hint.textContent='가구 전체 통신비까지 계산하려면 휴대폰 월 요금 합계를 입력하세요.';summary.append(hint);
   }
+  if(verifiedAllSmart3){const verified=document.createElement('p');verified.className='skw-quote-verified';verified.textContent='회사 상담 화면 대조: 기가라이트인터넷 33,000원 + B tv All·Smart 3 패키지 23,100원 = 결합 할인 전 56,100원. 셋톱 요금을 중복 더하지 않았습니다.';summary.append(verified)}
+  if(tvPlan&&boxPlan&&!verifiedAllSmart3){const review=document.createElement('p');review.className='skw-quote-warning';review.textContent='선택한 B tv·셋톱 구성은 회사 시스템의 패키지 요금으로 아직 검증되지 않았습니다. 표시된 금액은 단순 합산 참고값입니다.';summary.append(review)}
   if(tvPlan&&opt.value==='bundle'){const caution=document.createElement('p');caution.className='skw-quote-warning';caution.textContent='B tv 결합 할인 월요금을 선택한 경우 IPTV 가족결합 추가 할인 1,100원은 중복 계산하지 않았습니다. 실제 중복 가능 여부는 가입 조건 확인이 필요합니다.';summary.append(caution)}
-  const fee=(!internetPlan&&!tvPlan)?0:(internetPlan&&tvPlan?34100:internetPlan?36300:34100);
-  summary.append(skwBuildRow('참고: 신규 설치 출동비 (1회)',skwPrice(fee)));
+  const internetFee=internetPlan?(tvPlan?34100:36300):0;
+  const tvFee=tvPlan?(internetPlan?22000:34100):0;
+  const fee=internetFee+tvFee;
+  summary.append(skwBuildRow('인터넷 출동비 (1회)',skwPrice(internetFee)));
+  summary.append(skwBuildRow('B tv 출동비 (1회)',skwPrice(tvFee)));
+  summary.append(skwBuildRow('출동비 합계 (월 요금과 별도)',skwPrice(fee),true));
+  const installNote=document.createElement('p');installNote.className='skw-quote-warning';installNote.textContent='출동비는 인터넷·TV에 각각 발생합니다. 평일 18시 이후·주말·공휴일 설치, 추가 회선·특수 작업 등에는 별도 할증이나 추가 비용이 발생할 수 있습니다.';summary.append(installNote);
   const btn=document.createElement('button');btn.type='button';btn.className='skw-rate-expand';btn.textContent='계산 내역 복사';
   btn.onclick=()=>{
    const text=['SKW 요금정리',internetPlan?.[0]||'인터넷 미선택',tvPlan?.[0]||'B tv 미선택',boxPlan?.name||'셋톱박스 미선택','이동전화 '+n+'회선',
    '유선 예상 월요금 '+skwPrice(fixedAfter),'인터넷 결합 할인 '+skwPrice(internetDiscount),'IPTV 결합 할인 '+skwPrice(iptvDiscount),'휴대폰 결합 할인 '+skwPrice(mobileDiscount),
-   ...(mobileNet!==null?['가구 합산 예상 월요금 '+skwPrice(fixedAfter+mobileNet)]:[]),'별도 설치 출동비 참고 '+skwPrice(fee),'※ 실제 청구 조건 확인 필요'].join('\n');
+   ...(mobileNet!==null?['가구 합산 예상 월요금 '+skwPrice(fixedAfter+mobileNet)]:[]),'인터넷 출동비(1회) '+skwPrice(internetFee),'B tv 출동비(1회) '+skwPrice(tvFee),'출동비 합계(1회) '+skwPrice(fee),'※ 실제 청구 조건 확인 필요'].join('\n');
    if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>{btn.textContent='복사 완료'}).catch(()=>{btn.textContent='복사 불가'});else btn.textContent='복사 불가';
   };
   summary.append(btn);
@@ -1431,6 +1445,11 @@ function renderPolicySection(root,id,title){
   if(id==='common')renderCommonSubsidy(root);else renderRetailPolicy(root);
  }else root.append(back,h,note);
 }
+function appendSKWSalesCaution(root){
+ const msg=document.createElement('aside');msg.className='skw-sale-caution';
+ msg.textContent='※ SKW의 요금제·정책·계산 결과는 업무 참고용입니다. 실제 판매·청약 시에는 반드시 SK텔레콤의 최신 판매정책 및 상담 시스템에서 적용 요금, 약정, 혜택과 할인 조건을 재확인하세요.';
+ root.append(msg);
+}
 function render(key){skwPolicyDetail=null;skwRecordNavigation();stopSales();stopSales=()=>{};if(key!=='products'&&!canUseMenu(key))key='products';activeMenu=key;document.body.classList.toggle('mobile-detail',mobileDetail||key==='products'&&!!category);document.body.classList.toggle('product-detail',key==='products'&&!!category);const mobileTitle=$('mobilePageTitle');
 mobileTitle.replaceChildren();
 if(key==='products'&&category){
@@ -1443,8 +1462,8 @@ if(canManageUsers()&&mode==='member'){const manage=action('사용자 관리',()=
 const content=$('content');content.replaceChildren();skwRecordNavigation();if(key==='users'){renderMemberAdmin(content);return}if(mode==='member'&&!isWorkspaceGuest()&&!isCardAdmin()&&(!accessLoaded||!memberAccess||!memberAccess.active)){const info=document.createElement('p');info.className='cardnotice';info.textContent=!accessLoaded?'이용 권한을 확인하고 있습니다.':!memberAccess?'관리자 승인 대기 중입니다. 상품소개는 계속 이용할 수 있습니다.':'업무 메뉴 이용이 중지되었습니다. 관리자에게 문의해주세요.';content.append(info)}if(mode==='member'&&registerError){const warning=document.createElement('p');warning.className='cardnotice';warning.textContent=registerError;content.append(warning)}
 if(isWorkspaceGuest()&&mode==='member'&&workspaceStatusReady&&!workspaceEnabled){const banner=document.createElement('p');banner.className='cardnotice';banner.textContent='내부 업무공간이 일시 중단되었습니다. 상품소개와 공통지원금은 계속 이용할 수 있습니다.';content.append(banner)}
 if(key==='products'&&!category){const grid=document.createElement('div');grid.className='grid';for(const [type,title,desc] of [['wireless','무선','무선 상품 안내와 상담에 활용할 세일즈톡'],['wired','유선','인터넷·TV 등 유선 상품과 상담 안내']]){const b=document.createElement('button');b.className='card';b.innerHTML='<span class="producticon" aria-hidden="true"><img src="./assets/'+type+'-icon.png" alt="" width="96" height="96"></span><strong>'+title+'</strong><p>'+desc+'</p><span class="arrow">자세히 보기 →</span>';b.onclick=()=>{resetProducts();category=type;render('products')};grid.append(b)}content.append(grid);return}
-if(key==='products'){renderProducts(content);return}
-if(key==='policy'){renderPolicyCategories(content);return}
+if(key==='products'){renderProducts(content);appendSKWSalesCaution(content);return}
+if(key==='policy'){renderPolicyCategories(content);appendSKWSalesCaution(content);return}
 if(key==='inventory'){stopSales=mountInventory(content,{user:currentUser,access:effectiveAccess(),owner:isCardAdmin(),db:cardDb,dbApi:cardDbApi});return}
 if(key==='sales'){stopSales=mountSales(content,{user:currentUser,access:memberAccess,owner:isCardAdmin(),db:cardDb,dbApi:cardDbApi});return}
 const messages={policy:['정책 자료 준비 중','적용일별 정책과 안내 자료가 이곳에 표시됩니다.'],sales:['내 판매현황 준비 중','판매내역과 월별 실적을 확인할 공간입니다.'],settlement:['내 정산현황 준비 중','월별 정산내역과 지급현황을 확인할 공간입니다.'],inventory:['재고현황 준비 중','모델·색상별 재고를 확인할 공간입니다.']};
