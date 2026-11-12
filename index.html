@@ -971,7 +971,7 @@ function renderWiredQuote(root){
  const phoneLabel=document.createElement('label');phoneLabel.textContent='휴대폰 월 요금 합계 (선택 입력)';
  const phoneInput=document.createElement('input');phoneInput.type='number';phoneInput.min='0';phoneInput.step='100';phoneInput.placeholder='예: 140000 · 미입력 가능';phoneInput.setAttribute('aria-label',phoneLabel.textContent);
  phoneField.append(phoneLabel,phoneInput);fields.append(phoneField);phoneInput.oninput=calculate;
- const note=document.createElement('p');note.className='skw-rate-note';note.textContent='요금 계산 방식: B tv 결합 할인 금액은 표에 적힌 할인 월요금을 사용할 때만 선택하세요. 이 금액과 요즘가족결합의 IPTV 추가 할인이 중복 가능한지는 실제 가입 조건을 확인해야 합니다.';fields.append(note);
+ const note=document.createElement('p');note.className='skw-rate-note';note.textContent='요금 계산 방식: B tv 결합 할인 금액은 표에 적힌 할인 월요금을 사용할 때만 선택하세요. 이 금액을 선택하면 IPTV 가족결합 추가 할인 1,100원은 중복 차감하지 않습니다. 실제 중복 적용 가능 여부는 가입 조건을 확인해야 합니다.';fields.append(note);
  const settopPrice=s=>Number((s||'0').replace(/[^0-9]/g,''))||0;
  const bundleKey=p=>p[0].includes('광랜')?'basic':p[0].includes('라이트')?'lite':'gigabit';
  function calculate(){
@@ -985,7 +985,7 @@ function renderWiredQuote(root){
   const baseBox=boxPlan?settopPrice(boxPlan.fee):0;
   const matrix=internetPlan?skwFamilyDiscountMatrix[bundleKey(internetPlan)]:null;
   const internetDiscount=n>0&&matrix?matrix.internet:0;
-  const iptvDiscount=n>0&&matrix&&tvPlan?matrix.iptv:0;
+  const iptvDiscount=n>0&&matrix&&tvPlan&&opt.value==='regular'?matrix.iptv:0;
   const mobileDiscount=n>0&&matrix?matrix.mobile[n]:0;
   const monthlyBefore=baseInternet+baseTv+baseBox;
   const fixedAfter=Math.max(0,monthlyBefore-internetDiscount-iptvDiscount);
@@ -1008,7 +1008,7 @@ function renderWiredQuote(root){
   }else{
    const hint=document.createElement('p');hint.className='skw-quote-warning';hint.textContent='가구 전체 통신비까지 계산하려면 휴대폰 월 요금 합계를 입력하세요.';summary.append(hint);
   }
-  if(tvPlan&&opt.value==='bundle'){const caution=document.createElement('p');caution.className='skw-quote-warning';caution.textContent='B tv 요금표의 결합 할인 금액과 요즘가족결합 IPTV 할인 중복 적용 여부는 확인이 필요합니다. 계산에서는 두 항목을 모두 반영했으므로 확정 견적이 아닙니다.';summary.append(caution)}
+  if(tvPlan&&opt.value==='bundle'){const caution=document.createElement('p');caution.className='skw-quote-warning';caution.textContent='B tv 결합 할인 월요금을 선택한 경우 IPTV 가족결합 추가 할인 1,100원은 중복 계산하지 않았습니다. 실제 중복 가능 여부는 가입 조건 확인이 필요합니다.';summary.append(caution)}
   const fee=(!internetPlan&&!tvPlan)?0:(internetPlan&&tvPlan?34100:internetPlan?36300:34100);
   summary.append(skwBuildRow('참고: 신규 설치 출동비 (1회)',skwPrice(fee)));
   const btn=document.createElement('button');btn.type='button';btn.className='skw-rate-expand';btn.textContent='계산 내역 복사';
