@@ -1009,7 +1009,7 @@ function renderWiredQuote(root){
   const boxPlan=box.value===''?null:skwSetTopModels[Number(box.value)];
   const n=Number(phone.value)||0;
   const baseInternet=internetPlan?internetPlan[2]:0;
-  const verifiedAllSmart3=!!(internetPlan&&tvPlan&&boxPlan&&tvPlan[0]==='B tv All'&&boxPlan.name==='Smart 3'&&opt.value==='regular');
+  const verifiedAllSmart3=!!(internetPlan&&internetPlan[0]==='기가라이트인터넷'&&tvPlan&&boxPlan&&tvPlan[0]==='B tv All'&&boxPlan.name==='Smart 3'&&opt.value==='regular');
   // 회사 상담 시스템 비교 사례: B tv All + Smart 3 패키지 23,100원(셋톱 요금 포함)
   const baseTv=verifiedAllSmart3?23100:(tvPlan?(opt.value==='bundle'?tvPlan[2]:tvPlan[1]):0);
   const baseBox=verifiedAllSmart3?0:(boxPlan?settopPrice(boxPlan.fee):0);
