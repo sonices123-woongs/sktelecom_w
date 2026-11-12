@@ -399,7 +399,7 @@ let skwRestoringNavigation=false;
 let skwNavigationTimer=null;
 function skwScreenState(){
  const page=['welcome','login','workspace'].find(id=>!$(id).hidden)||'welcome';
- return {page,mode,menu:activeMenu,category,wirelessFilter,articleOpen,articlePage,selectedPost,
+ return {page,mode,menu:activeMenu,category,wirelessFilter,skwWiredCategory,articleOpen,articlePage,selectedPost,
   mobileDetail,policyDetail:skwPolicyDetail};
 }
 function skwScreenKey(state){
@@ -426,6 +426,7 @@ window.addEventListener('popstate',event=>{
   mode=state.mode==='guest'?'guest':state.mode==='member'?'member':'welcome';
   category=state.category||null;
   wirelessFilter=state.wirelessFilter||'all';
+  skwWiredCategory=state.skwWiredCategory||'plans';
   articleOpen=!!state.articleOpen;
   articlePage=state.articlePage===2?2:1;
   selectedPost=state.selectedPost||'a18';
@@ -637,7 +638,7 @@ function filterMembers(){memberSearchText=search.value;memberStateFilter=stateFi
 search.oninput=filterMembers;stateFilter.onchange=filterMembers;filterMembers();
 }
 
-function resetProducts(){postSearch='';wirelessFilter='all';articleOpen=false;articlePage=1;selectedPost='a18'}
+function resetProducts(){postSearch='';wirelessFilter='all';skwWiredCategory='plans';articleOpen=false;articlePage=1;selectedPost='a18'}
 function action(text,fn,cls='back'){const b=document.createElement('button');b.textContent=text;b.className=cls;b.onclick=fn;return b}
 function panel(title,desc,fn){const b=action('',fn,'card');const h=document.createElement('strong');h.textContent=title;const p=document.createElement('p');p.textContent=desc;b.append(h,p);return b}
 
@@ -824,12 +825,95 @@ function renderWiredPlans(root){
  draw();
 }
 
+
+/* B tv set-top boxes and shared family bundle from supplied 2026-11 sheets */
+const skwSetTopModels=[
+ {name:'AI 5',fee:'7,700원',note:'케어서비스 가입 시 5,500원',features:['AI 최적화로 생성한 시청 경험 제공','Voice ID 및 AI 음성 기능','AI 사운드 자동 조정','HDR10+ 및 Dolby Vision 동시 지원','초저전력 셋톱박스','셋톱박스 케어서비스는 별도 이용 조건 확인']},
+ {name:'Smart 3',fee:'4,400원',features:['안드로이드 운영체제 탑재','넷플릭스·유튜브 시청 가능','리모컨 음성 검색 버튼을 이용한 NUGU 서비스 사용 가능']},
+ {name:'AI Sound Max',fee:'8,800원',features:['B&O 제휴 사운드바 일체형 셋톱박스','유튜브 등 구글 앱 및 AI 지원','친환경 스마트 리모컨 제공']},
+ {name:'Apple TV 4K',fee:'6,600원',features:['4K Dolby Vision, HDR10+ 제공','3D Dolby Atmos 사운드 및 AI5 Bionic 탑재','Apple TV+와 Apple Original 프로그램 및 영화 제공']},
+ {name:'Smart 3 mini',fee:'4,400원',features:['Wi-Fi 연결이 가능한 셋톱박스','한 손에 쏙 들어오는 초소형 사이즈','저전력 및 Smart 3 동급 기능 지원']}
+];
+const skwFamilyBundleDiscount=[
+ ['5회선','-24,000원'],['4회선','-20,000원'],['3회선','-15,000원'],['2회선','-6,000원']
+];
+function renderSetTopCatalog(root){
+ const wrap=document.createElement('section');wrap.className='skw-wired-wrap skw-settop-wrap';
+ wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · B tv</span><h2>셋톱박스 요금제</h2><p>월 이용료 · 3년 약정 기준 · 부가세 포함</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 기종별 제공 기능과 케어서비스 할인은 신청 조건에 따라 달라질 수 있어요. 현장 설치 가능 여부와 이용 조건을 확인하세요.</p>';
+ root.append(wrap);const grid=wrap.querySelector('.skw-rate-results');
+ for(const model of skwSetTopModels){
+  const card=document.createElement('article');card.className='skw-rate-card';
+  const h=document.createElement('h3');h.className='skw-wired-title';h.textContent=model.name;
+  const fee=document.createElement('div');fee.className='skw-wired-line skw-wired-emphasis';
+  const lab=document.createElement('span');lab.textContent='월 요금';const val=document.createElement('strong');val.textContent=model.fee;fee.append(lab,val);
+  card.append(h,fee);
+  if(model.note){const p=document.createElement('p');p.className='skw-wired-desc';p.textContent=model.note;card.append(p)}
+  const d=document.createElement('details');d.className='skw-wired-expand';
+  const summary=document.createElement('summary');summary.textContent='주요 기능 자세히 보기';d.append(summary);
+  const body=document.createElement('div');body.className='skw-wired-detailbody';
+  for(const item of model.features){const p=document.createElement('p');p.textContent='• '+item;body.append(p)}
+  d.append(body);card.append(d);grid.append(card);
+ }
+ const air=document.createElement('article');air.className='skw-rate-card skw-settop-air';
+ air.innerHTML='<span class="skw-rate-tag">추가 B tv</span><h3 class="skw-wired-title">B tv air · 태블릿 TV</h3><p class="skw-wired-desc">두 번째 B tv를 태블릿으로 가볍게 이용하는 서비스</p><div class="skw-wired-line"><span>정상가</span><strong>월 8,800원</strong></div><div class="skw-wired-line skw-wired-emphasis"><span>할인 적용 시</span><strong>월 5,500원</strong></div>';
+ const d=document.createElement('details');d.className='skw-wired-expand';
+ d.innerHTML='<summary>할인·이용 조건 보기</summary><div class="skw-wired-detailbody"><p>3년 약정 요금 기준이며 정상가 3년 합계 316,800원, 할인 요금 3년 합계 198,000원입니다.</p><p>한 집에서 SK Wi-Fi(11ac wave2 기종 이상)를 연결해 이용하는 태블릿 B tv 서비스입니다.</p><p>B tv 셋톱박스와 함께 이용 시 할인 조건을 확인하세요.</p><p>약정 내 해지 또는 장비 변경 시 위약금·할부금 등의 조건이 발생할 수 있습니다.</p></div>';
+ air.append(d);grid.append(air);
+}
+function renderSharedFamilyBundle(root){
+ const section=document.createElement('section');section.className='skw-wired-wrap skw-bundle-wrap';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">무선 + 유선 공통</span><h2>요즘가족결합</h2><p>휴대폰·인터넷·B tv 결합 혜택 · 제공 이미지 기준</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 이미지 자료의 할인 예시입니다. 실제 결합 할인은 요금제, 결합 회선, 결합 기간, 인터넷 속도, IPTV 가입 및 약정 조건에 따라 달라집니다. 신규 가입 전 운영 기준을 확인하세요.</p>';
+ root.append(section);
+ const grid=section.querySelector('.skw-rate-results');
+ const createCard=(title,subtitle)=>{
+  const c=document.createElement('article');c.className='skw-rate-card';
+  const h=document.createElement('h3');h.className='skw-wired-title';h.textContent=title;c.append(h);
+  if(subtitle){const p=document.createElement('p');p.className='skw-wired-desc';p.textContent=subtitle;c.append(p)}
+  grid.append(c);return c;
+ };
+ const line=(card,key,value)=>{
+  const row=document.createElement('div');row.className='skw-wired-line';
+  const left=document.createElement('span');left.textContent=key;const right=document.createElement('strong');right.textContent=value;row.append(left,right);card.append(row);
+ };
+ const withDetails=(card,items)=>{
+  const d=document.createElement('details');d.className='skw-wired-expand';
+  const sum=document.createElement('summary');sum.textContent='조건 자세히 보기';d.append(sum);
+  const body=document.createElement('div');body.className='skw-wired-detailbody';
+  for(const item of items){const p=document.createElement('p');p.textContent='• '+item;body.append(p)}
+  d.append(body);card.append(d);
+ };
+ const mobile=createCard('휴대폰 결합 할인','결합 회선 수에 따른 휴대폰 할인 예시');
+ for(const [name,amount] of skwFamilyBundleDiscount)line(mobile,name,amount);
+ withDetails(mobile,['회선 수에 따라 휴대폰 할인 금액이 달라집니다.','사진의 상단 표는 2~5회선 기준 안내입니다.','휴대폰 2회선 이상 결합 시 1년 이상 약정된 인터넷(케이블 포함) 등 가입 조건을 확인하세요.']);
+ const internet=createCard('인터넷 + IPTV 추가 할인','휴대폰 결합과 함께 적용되는 유선 할인 예시');
+ line(internet,'기가인터넷 (1G 이상)','인터넷 -13,200원');
+ line(internet,'기가라이트인터넷 (500M)','인터넷 -11,000원');
+ line(internet,'광랜인터넷 (100M)','인터넷 -4,400원');
+ line(internet,'IPTV 할인','별도 적용 조건 확인');
+ withDetails(internet,['가입 인터넷 속도와 결합 회선 수에 따라 총 할인액이 달라집니다.','제공된 자료에는 인터넷 종류별 1~5회선 결합 총 할인 금액 예시가 포함되어 있습니다.','IPTV 결합 시 상품에 따라 추가 할인 항목이 있습니다.','3년 약정·부가세 포함 기준이며 실제 적용 가능 회선과 회선별 요금제 조건을 확인하세요.']);
+ const notes=createCard('가입 전 확인할 조건','원본 자료의 결합 주의사항');
+ withDetails(notes,['결합 가능한 인터넷 및 IPTV 종류에 제한이 있을 수 있습니다.','가입 회선 수 산정, 가족 관계 및 명의 조건을 확인하세요.','기존 결합 상품과 중복 할인 적용 여부를 확인하세요.','결합 해지·회선 수 변경 시 할인 금액이 변동될 수 있습니다.']);
+}
+
+let skwWiredCategory='plans';
 function renderProducts(root){
-if(category==='wired'){const wiredTabs=document.createElement('nav');wiredTabs.className='tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');const plans=action('요금제',()=>{},'active');plans.setAttribute('aria-current','page');wiredTabs.append(plans);root.append(wiredTabs);renderWiredPlans(root);return}
+if(category==='wired'){
+ const wiredTabs=document.createElement('nav');wiredTabs.className='tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');
+ for(const [key,label] of [['plans','요금제'],['settop','셋톱박스'],['bundle','결합']]){
+  const tab=action(label,()=>{skwWiredCategory=key;render('products')},skwWiredCategory===key?'active':'');
+  tab.setAttribute('aria-pressed',String(skwWiredCategory===key));wiredTabs.append(tab);
+ }
+ root.append(wiredTabs);
+ if(skwWiredCategory==='settop')renderSetTopCatalog(root);
+ else if(skwWiredCategory==='bundle')renderSharedFamilyBundle(root);
+ else renderWiredPlans(root);
+ return;
+}
 
 const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
-for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
+for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제'],['bundle','결합']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
 if(wirelessFilter==='plans'){articleOpen=false;renderRatePlans(root);return}
+if(wirelessFilter==='bundle'){articleOpen=false;renderSharedFamilyBundle(root);return}
 if(!articleOpen){
 const top=document.createElement('div');top.className='postsearchbar';
 const heading=document.createElement('h2');heading.textContent=wirelessFilter==='all'?'무선 최신 게시글':wirelessFilter==='cards'?'제휴카드 게시글':'단말기 게시글';
