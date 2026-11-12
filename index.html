@@ -341,6 +341,22 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .skw-rate-detailrow strong{display:block;font-size:13px;color:#1e293b;margin-bottom:4px}
 .skw-rate-detailrow p{margin:0;font-size:13px;color:#475569;line-height:1.6;overflow-wrap:anywhere}
 
+
+/* 유선 요금제 모바일 카드 */
+.skw-wired-wrap{width:100%;min-width:0}
+.skw-wired-wrap .skw-rate-groups{margin:4px 0 10px}
+.skw-wired-wrap .skw-rate-groups button{font-size:14px}
+.skw-wired-title{font-size:19px;font-weight:800;margin:0 0 7px;overflow-wrap:anywhere;color:#0f172a}
+.skw-wired-desc{font-size:14px;color:#475569;margin:0 0 13px;line-height:1.6}
+.skw-wired-line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:7px 0;font-size:13px;color:#475569}
+.skw-wired-line strong{font-size:16px;color:#0f172a;text-align:right;white-space:nowrap}
+.skw-wired-emphasis strong{font-size:21px;color:#1d4ed8}
+.skw-wired-expand{margin-top:14px;border-top:1px solid #e2e8f0;padding-top:12px}
+.skw-wired-expand summary{display:block;cursor:pointer;color:#1d4ed8;background:#eff6ff;border-radius:10px;font-size:13px;font-weight:800;text-align:center;padding:12px}
+.skw-wired-expand summary::marker{content:''}
+.skw-wired-detailbody{padding:11px 4px 0}
+.skw-wired-detailbody p{font-size:13px;line-height:1.65;color:#475569;margin:8px 0;overflow-wrap:anywhere}
+
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -707,8 +723,109 @@ function renderRatePlans(root){
  search.oninput=draw;draw();
 }
 
+
+/* 유선 요금제 - 사용자가 제공한 2026-11 안내 이미지 기준 */
+const skwWiredInternet=[
+ ['기가인터넷','최대 1Gbps',38500,'2GB 영화 다운로드 약 16초'],
+ ['기가라이트인터넷','최대 500Mbps',33000,'2GB 영화 다운로드 약 25초'],
+ ['광랜인터넷','최대 100Mbps',22000,'2GB 영화 다운로드 약 2분 40초'],
+ ['기가프리미엄X2.5','최대 2.5Gbps',44000,'기가인터넷보다 최대 2.5배 속도'],
+ ['기가프리미엄X5','최대 5Gbps',55000,'기가인터넷보다 최대 5배 속도'],
+ ['기가프리미엄X10','최대 10Gbps',82500,'기가인터넷보다 최대 10배 속도']
+];
+const skwWiredTv=[
+ ['B tv 스탠다드',13200,7700,'235개','지상파·드라마·예능·골프·스포츠'],
+ ['B tv All',16500,9350,'255개','지상파·드라마·예능·골프·스포츠'],
+ ['B tv 스탠다드 넷플릭스 프리미엄',28500,23000,'235개','넷플릭스 프리미엄 포함 · 결합 요금 일부 별도 조건'],
+ ['B tv All 넷플릭스 프리미엄',31000,23850,'255개','넷플릭스 프리미엄 포함 · 결합 요금 일부 별도 조건'],
+ ['B tv 스탠다드+',20900,15400,'235개','B tv+ 결합 상품'],
+ ['B tv All+',22000,14850,'255개','B tv+ 결합 상품'],
+ ['B tv+ max',23100,15950,'255개','B tv+ 지상파 월정액'],
+ ['B tv pop 180',7700,5500,'184개','영화·시리즈·레저·UHD 등은 제공 범위 확인'],
+ ['B tv pop 230',9900,6600,'228개','영화·시리즈·레저·UHD 등 제공']
+];
+function renderWiredPlans(root){
+ const section=document.createElement('section');section.className='skw-wired-wrap';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 유선</span><h2>유선 요금제</h2><p>제공 자료 기준 · 3년 약정 / 부가세 포함</p></div><nav class="skw-rate-groups" aria-label="유선 요금제 종류"></nav><div class="skw-wired-results"></div><p class="skw-rate-note">※ 요금은 제공된 이미지 기준입니다. 결합·장비·설치 조건에 따라 실제 청구 금액이 다를 수 있으며 가입 전 최신 기준을 확인하세요.</p>';
+ root.append(section);
+ const nav=section.querySelector('nav'),results=section.querySelector('.skw-wired-results');
+ let group='인터넷';
+ const money=v=>v.toLocaleString('ko-KR')+'원';
+ const line=(label,value)=>{
+  const row=document.createElement('div');row.className='skw-wired-line';
+  const k=document.createElement('span');k.textContent=label;
+  const v=document.createElement('strong');v.textContent=value;
+  row.append(k,v);return row;
+ };
+ const info=(title,detail,more)=>{
+  const card=document.createElement('article');card.className='skw-rate-card';
+  const h=document.createElement('h3');h.className='skw-wired-title';h.textContent=title;card.append(h);
+  if(detail){const p=document.createElement('p');p.className='skw-wired-desc';p.textContent=detail;card.append(p)}
+  if(more&&more.length){
+   const details=document.createElement('details');details.className='skw-wired-expand';
+   const summary=document.createElement('summary');summary.textContent='상세 조건 보기';details.append(summary);
+   const body=document.createElement('div');body.className='skw-wired-detailbody';
+   for(const t of more){const p=document.createElement('p');p.textContent=t;body.append(p)}
+   details.append(body);card.append(details);
+  }
+  return card;
+ };
+ function draw(){
+  nav.replaceChildren();results.replaceChildren();
+  for(const label of ['인터넷','B tv','결합·부가요금']){
+   const b=document.createElement('button');b.type='button';b.textContent=label;b.className=label===group?'selected':'';b.setAttribute('aria-pressed',String(label===group));b.onclick=()=>{group=label;draw()};nav.append(b);
+  }
+  const grid=document.createElement('div');grid.className='skw-rate-results';results.append(grid);
+  if(group==='인터넷'){
+   for(const [name,speed,price,explain] of skwWiredInternet){
+    const card=info(name,speed,[
+     '요금 표기: 3년 약정 기준, 부가세 포함',
+     explain,
+     name.startsWith('기가프리미엄')?'기가프리미엄 인터넷 가입 시 Giga WiFi 7 무료 제공 (자료 표기)':'Wi-Fi 이용료는 선택 상품에 따라 별도'
+    ]);
+    const priceRow=line('월 이용요금',money(price));priceRow.classList.add('skw-wired-emphasis');
+    card.insertBefore(priceRow,card.querySelector('details'));grid.append(card);
+   }
+  } else if(group==='B tv'){
+   const note=document.createElement('p');note.className='skw-rate-note';note.textContent='첫 금액은 월 이용요금, 둘째는 다섯째 요금(인터넷 결합 기준)이며 약정·결합 조건 확인이 필요합니다.';results.insertBefore(note,grid);
+   for(const [name,price,bundled,channels,description] of skwWiredTv){
+    const card=info(name,'채널 '+channels,[
+      '주요 채널: '+description,
+      '다섯째 요금은 제공 자료에 표기된 인터넷 결합 요금입니다.',
+      '넷플릭스 프리미엄 결합형은 원본 자료에 별도 괄호 요금이 있어 가입 시 구체적인 결합 조건 확인 필요'
+    ]);
+    const a=line('월 이용요금',money(price));a.classList.add('skw-wired-emphasis');
+    card.insertBefore(a,card.querySelector('details'));card.insertBefore(line('인터넷 결합 시',money(bundled)),card.querySelector('details'));grid.append(card);
+   }
+  } else {
+   const wifi=info('Wi-Fi 상품','인터넷 속도에 맞춰 선택',[
+     'Giga WiFi 7: 최대 2.5Gbps (인터넷 속도 2.5G 제공 시)',
+     'Giga WiFi: 최대 1Gbps',
+     '기가프리미엄 인터넷 가입 시 Giga WiFi 7 무료 제공 (제공 자료 기준)'
+   ]);
+   wifi.insertBefore(line('Giga WiFi 7','월 +2,200원'),wifi.querySelector('details'));
+   wifi.insertBefore(line('Giga WiFi','월 +1,100원'),wifi.querySelector('details'));grid.append(wifi);
+   const discount=info('요금우대 집결합 할인','제공 자료의 항목별 할인액',[
+     '초고속인터넷 사용 고객이 B tv 또는 B tv pop과 결합 시 추가 할인',
+     '광랜(Wi-Fi 통합상품)은 인터넷 할인액 -1,100원'
+   ]);
+   for(const [a,b] of [['광랜','-2,200원'],['기가','-5,500원'],['B tv','-2,200원'],['B tv pop','-3,300원']])discount.insertBefore(line(a,b),discount.querySelector('details'));
+   grid.append(discount);
+   const install=info('출동비 안내','평일 오후 6시 이후 및 주말·공휴일 설치 시 추가 할증 가능',[
+    '인터넷 단독: 36,300원 / 전화와 함께 설치 시 30,800원',
+    '인터넷 + TV 설치: 34,100원',
+    'B tv 단독: 34,100원 / 인터넷과 함께 설치 시 22,000원',
+    'B tv를 2대 이상 설치할 경우 2번째 회선부터 17,600원',
+    'Wi-Fi 단독: 19,800원 / 인터넷과 함께 설치 시 무료'
+   ]);
+   grid.append(install);
+  }
+ }
+ draw();
+}
+
 function renderProducts(root){
-if(category==='wired'){const box=document.createElement('div');box.className='empty';box.innerHTML='<h2>유선 상품 안내 준비 중</h2><p>아직 등록된 자료가 없습니다.</p>';root.append(box);return}
+if(category==='wired'){renderWiredPlans(root);return}
 
 const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
 for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
