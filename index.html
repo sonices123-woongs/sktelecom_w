@@ -331,6 +331,16 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .skw-rate-small,.skw-rate-note{font-size:12px;color:#64748b;line-height:1.6}
 @media(max-width:420px){.skw-rate-card{padding:14px}.skw-rate-cardtop h3{font-size:18px}.skw-rate-groups button{font-size:13px;padding:9px 9px}}
 
+
+.skw-rate-detail{margin-top:13px;border-top:1px solid #e2e8f0;padding-top:12px}
+.skw-rate-expand{display:block;width:100%;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;text-align:center;line-height:1.45}
+.skw-rate-expand[aria-expanded="true"]{background:#dbeafe}
+.skw-rate-expanded{padding:12px 2px 2px}
+.skw-rate-expanded[hidden]{display:none!important}
+.skw-rate-detailrow{padding:9px 0;border-bottom:1px solid #f1f5f9}
+.skw-rate-detailrow strong{display:block;font-size:13px;color:#1e293b;margin-bottom:4px}
+.skw-rate-detailrow p{margin:0;font-size:13px;color:#475569;line-height:1.6;overflow-wrap:anywhere}
+
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -617,12 +627,45 @@ function panel(title,desc,fn){const b=action('',fn,'card');const h=document.crea
 
 /* SKW 2026-11 provided rate-plan sheets; displayed as responsive text cards. */
 const skwRatePlans=[["베스트","베스트 Max",129000,96750,"완전 무제한","공유 140GB","Google AI Pro · YouTube Premium · Netflix Premium · Disney+ Premium · TVING/Wavve Premium 중 1택"],["베스트","베스트 Pro",119000,89250,"완전 무제한","공유 120GB","Google AI Plus · YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 109",109000,81750,"완전 무제한","공유 100GB","YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 99",99000,74250,"완전 무제한","공유 80GB","Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 89",89000,66750,"완전 무제한","공유 60GB","Netflix/Disney+/TVING·Wavve 구독 할인 혜택"],["라이트","라이트 79",79000,59250,"250GB","소진 후 최대 5Mbps · 공유 54GB","스마트기기 1회선 이용요금 50% 할인"],["라이트","라이트 69",69000,51750,"110GB","소진 후 최대 5Mbps · 공유 48GB",""],["라이트","라이트 59",59000,44250,"24GB","소진 후 최대 1Mbps","월 1회 데이터 충전 가능 · 13/30/50GB"],["라이트","라이트 55",55000,41250,"15GB","소진 후 최대 1Mbps","월 1회 4GB 충전 가능"],["라이트","라이트 49",49000,36750,"11GB","소진 후 최대 400Kbps","월 1회 3GB 충전 가능"],["라이트","라이트 45",45000,33750,"8GB","소진 후 최대 400Kbps","월 1회 2GB 충전 가능"],["라이트","라이트 39",39000,29250,"6GB","소진 후 최대 400Kbps","월 1회 1GB 충전 가능"],["라이트","라이트 59 75GB 업",68000,51000,"99GB","기본 24GB + 정기충전 75GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 50GB 업",66000,49500,"74GB","기본 24GB + 정기충전 50GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 30GB 업",64000,48000,"54GB","기본 24GB + 정기충전 30GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 13GB 업",62000,46500,"37GB","기본 24GB + 정기충전 13GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["기본","T플랜 세이브",33000,24750,"1.5GB","소진 후 최대 400Kbps","매일 01~07시 데이터 사용 시 데이터 75% 할인"],["기본","뉴 T끼리 맞춤형",27830,20872,"250MB","소진 후 최대 400Kbps","망내 음성 무제한 · 매일 01~07시 데이터 50% 할인"],["어린이","ZEM플랜 퍼펙트",36000,27000,"6GB","소진 후 최대 1Mbps","집전화·이동전화 무제한 · 영상/부가통화 300분"],["어린이","ZEM플랜 베스트",26000,19500,"3GB","소진 후 최대 400Kbps","집전화·이동전화 무제한 · 영상/부가통화 100분"],["어린이","ZEM플랜 스마트",19800,14850,"1.5GB","소진 후 최대 400Kbps","지정 2회선(SKT) 무제한 · 그 외 60분"]];
+
+function skwPlanBenefits(plan){
+ const [group,name,,,data,detail,benefit]=plan;
+ const items=[];
+ if(group==='베스트'){
+  const ott=name==='베스트 Max'?'Google AI Pro · YouTube Premium · Netflix Premium · Disney+ Premium · TVING/Wavve Premium':
+    name==='베스트 Pro'?'Google AI Plus · YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard':
+    name==='베스트 109'?'YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard':
+    name==='베스트 99'?'Netflix Standard · Disney+ Standard · TVING/Wavve Standard':'Netflix · Disney+ · TVING/Wavve 구독 할인';
+  items.push(['OTT·구독 혜택',ott+(name==='베스트 89'?' (일부 50% 할인)':' · 선택 혜택 1종 기준')]);
+  const big=name==='베스트 Max'?'Big 6':name==='베스트 Pro'?'Big 5':name==='베스트 109'?'Big 4':'Big 3';
+  items.push(['추가 혜택',big+(name==='베스트 89'?' 50% 할인':' 무료')]);
+  if(name==='베스트 Max')items.push(['스마트기기','알뜰폰 월 최대 2.4만원 할인 (제공 자료 표기 기준)']);
+  if(name==='베스트 Pro')items.push(['스마트기기','알뜰폰 월 최대 1.8만원 할인 (제공 자료 표기 기준)']);
+  if(name==='베스트 109')items.push(['스마트기기','알뜰폰 월 최대 1.2만원 할인 (제공 자료 표기 기준)']);
+  items.push(['데이터 공유',detail]);
+ }else if(group==='라이트'){
+  items.push(['데이터 이용',data+' · '+detail]);
+  if(name==='라이트 79')items.push(['스마트기기','스마트기기 1회선 이용요금 50% 할인']);
+  if(name.includes('업'))items.push(['데이터플러스','라이트 59 기반 정기충전 데이터가 포함된 맞춤형 요금제']);
+  if(benefit)items.push(['추가 혜택',benefit]);
+ }else if(group==='기본'){
+  items.push(['데이터 이용',data+' · '+detail]);
+  items.push(['추가 혜택',benefit]);
+  items.push(['음성·문자','요금제별 제공량 및 망내·망외 조건은 원본 자료 확인']);
+ }else{
+  items.push(['데이터 이용',data+' · '+detail]);
+  items.push(['음성·영상통화',benefit]);
+  items.push(['가입 조건','어린이 대상 요금제 · 연령 및 전환 조건 확인 필요']);
+ }
+ return items;
+}
 function renderRatePlans(root){
  const wrap=document.createElement('section');wrap.className='skw-rate-wrap';
- wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 스마트폰</span><h2>요금제 안내</h2><p>2026년 11월 제공 자료 기준 · 부가세 포함</p></div><div class="skw-rate-groups" role="group" aria-label="요금제 종류"></div><div class="skw-rate-search"><input type="search" aria-label="요금제 검색" placeholder="요금제 이름 검색"></div><div class="skw-rate-results" aria-live="polite"></div><p class="skw-rate-note">선택약정 금액은 자료에 표기된 금액이며 가입 조건에 따라 달라질 수 있습니다. 프로모션, 부가 혜택, 데이터 충전 및 무료 회선 조건은 고객 가입 전 반드시 최신 안내를 확인하세요.</p>';
+ wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 스마트폰</span><h2>요금제 안내</h2><p>2026년 11월 제공 자료 기준 · 부가세 포함</p></div><div class="skw-rate-groups" role="group" aria-label="요금제 종류"></div><div class="skw-rate-search"><input type="search" aria-label="요금제 검색" placeholder="요금제 이름 검색"></div><div class="skw-rate-results" aria-live="polite"></div><p class="skw-rate-note">※ 할인과 프로모션은 기간·선택 항목·가입 조건 등에 따라 달라질 수 있습니다. 특히 OTT 무료·할인, Big 혜택과 데이터 충전은 가입 전 최신 운영 기준을 확인하세요.</p>';
  root.append(wrap);
  const groups=wrap.querySelector('.skw-rate-groups'),search=wrap.querySelector('input'),results=wrap.querySelector('.skw-rate-results');
  let selected='전체';
+ const expanded=new Set();
  const won=n=>Number(n).toLocaleString('ko-KR')+'원';
  function draw(){
   groups.replaceChildren();
@@ -645,7 +688,19 @@ function renderRatePlans(root){
    const dataEl=document.createElement('div');dataEl.className='skw-rate-data';dataEl.innerHTML='<span>데이터</span><strong></strong><p></p>';dataEl.querySelector('strong').textContent=data;dataEl.querySelector('p').textContent=detail;
    card.append(top,money,dataEl);
    if(benefit){const e=document.createElement('p');e.className='skw-rate-benefit';e.textContent=benefit;card.append(e)}
-   if(group==='베스트'){const e=document.createElement('p');e.className='skw-rate-small';e.textContent='선택 혜택 및 OTT 프로모션은 요금제별 제공 조건 확인';card.append(e)}
+   const details=document.createElement('div');details.className='skw-rate-detail';
+   const button=document.createElement('button');button.type='button';button.className='skw-rate-expand';
+   const panel=document.createElement('div');panel.className='skw-rate-expanded';
+   const detailId='skw-plan-detail-'+skwRatePlans.indexOf(p);panel.id=detailId;button.setAttribute('aria-controls',detailId);
+   for(const [label,value] of skwPlanBenefits(p)){
+    const row=document.createElement('div');row.className='skw-rate-detailrow';
+    const heading=document.createElement('strong');heading.textContent=label;
+    const desc=document.createElement('p');desc.textContent=value;row.append(heading,desc);panel.append(row);
+   }
+   const caution=document.createElement('p');caution.className='skw-rate-small';caution.textContent='프로모션 적용 기간, 세부 조건, 선택 가능 혜택은 가입 전 확인이 필요합니다.';panel.append(caution);
+   function toggle(open){panel.hidden=!open;button.setAttribute('aria-expanded',String(open));button.textContent=open?'혜택·프로모션 접기 ▲':'혜택·프로모션 자세히 보기 ▼';if(open)expanded.add(name);else expanded.delete(name)}
+   button.onclick=()=>toggle(panel.hidden);
+   details.append(button,panel);card.append(details);toggle(expanded.has(name));
    results.append(card);
   }
  }
