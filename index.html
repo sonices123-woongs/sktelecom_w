@@ -787,11 +787,11 @@ function renderWiredPlans(root){
     card.insertBefore(priceRow,card.querySelector('details'));grid.append(card);
    }
   } else if(group==='B tv'){
-   const note=document.createElement('p');note.className='skw-rate-note';note.textContent='첫 금액은 월 이용요금, 둘째는 다섯째 요금(인터넷 결합 기준)이며 약정·결합 조건 확인이 필요합니다.';results.insertBefore(note,grid);
+   const note=document.createElement('p');note.className='skw-rate-note';note.textContent='첫 금액은 월 이용요금, 둘째는 자료에 표기된 결합 할인 요금입니다. 할인 적용 조건은 확인이 필요합니다.';results.insertBefore(note,grid);
    for(const [name,price,bundled,channels,description] of skwWiredTv){
     const card=info(name,'채널 '+channels,[
       '주요 채널: '+description,
-      '다섯째 요금은 제공 자료에 표기된 인터넷 결합 요금입니다.',
+      '할인 요금은 제공 자료의 결합 할인 항목에 해당하며, 적용 조건 확인이 필요합니다.',
       '넷플릭스 프리미엄 결합형은 원본 자료에 별도 괄호 요금이 있어 가입 시 구체적인 결합 조건 확인 필요'
     ]);
     const a=line('월 이용요금',money(price));a.classList.add('skw-wired-emphasis');
@@ -825,7 +825,7 @@ function renderWiredPlans(root){
 }
 
 function renderProducts(root){
-if(category==='wired'){renderWiredPlans(root);return}
+if(category==='wired'){const wiredTabs=document.createElement('nav');wiredTabs.className='tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');const plans=action('요금제',()=>{},'active');plans.setAttribute('aria-current','page');wiredTabs.append(plans);root.append(wiredTabs);renderWiredPlans(root);return}
 
 const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
 for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
