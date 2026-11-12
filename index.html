@@ -373,6 +373,29 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .skw-quote-summary .skw-rate-expand{margin-top:12px}
 @media(max-width:390px){.skw-quote-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.skw-quote-controls input,.skw-quote-controls select{font-size:12px;padding:9px 6px}}
 
+
+/* SKW product-category navigation: compact fixed two-row grid for wireless and wired. */
+#content>.skw-product-tabs{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+ position:sticky;top:calc(var(--brand-height,64px) + 52px);
+ z-index:29;background:#f6f7f9;
+ padding:7px 2px 8px;margin:0 0 12px;
+ border-bottom:1px solid #e4e8ef;
+ isolation:isolate;
+}
+#content>.skw-product-tabs button{
+ display:flex;align-items:center;justify-content:center;
+ width:100%;min-width:0;min-height:32px;
+ padding:7px 3px;border-radius:8px;
+ font-size:12.5px;line-height:1.2;white-space:nowrap;
+ box-sizing:border-box;
+}
+#content>.skw-wireless-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+#content>.skw-product-tabs button:focus-visible{outline:2px solid #2563eb;outline-offset:1px}
+@media(max-width:370px){
+ #content>.skw-product-tabs button{font-size:12px;padding:7px 2px}
+}
+
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -441,7 +464,7 @@ window.addEventListener('popstate',event=>{
  try{
   mode=state.mode==='guest'?'guest':state.mode==='member'?'member':'welcome';
   category=state.category||null;
-  wirelessFilter=state.wirelessFilter||'all';
+  wirelessFilter=state.wirelessFilter==='all'?'plans':state.wirelessFilter||'plans';
   skwWiredCategory=state.skwWiredCategory||'plans';
   articleOpen=!!state.articleOpen;
   articlePage=state.articlePage===2?2:1;
@@ -466,7 +489,7 @@ window.addEventListener('popstate',event=>{
 });
 let postSearch='';
 skwRecordNavigation();
-let wirelessFilter='all',articleOpen=false,articlePage=1,selectedPost='a18';
+let wirelessFilter='plans',articleOpen=false,articlePage=1,selectedPost='a18';
 
 let novemberCards=[{"name":"삼성카드 T프리미엄","rows":[[80,25000,35000],[160,40000,50000],[250,60000,70000]],"conditions":["삼성카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 50만원 이상 결제 조건, 전 모델 대상.","라이트할부 승인일 기준. 과거 해당 카드 청구할인 수혜 이력 등에 따라 추가할인 대상에서 제외될 수 있습니다."]},{"name":"현대카드 M3 T라이트2","rows":[[50,15000,33000],[100,25000,35000]],"conditions":["현대카드 신규 또는 6개월 이상 무실적 고객 대상. M3 T라이트2 최초 발급 조건.","라이트할부 5만원 이상 결제 조건. 카드 발급 승인일 기준.","해당 카드 발급·할인 수혜 이력이 있으면 기본할인 또는 프로모션 적용이 제한될 수 있습니다."]},{"name":"NH카드 T라이트","rows":[[40,11000,23000],[80,17000,29000]],"conditions":["NH농협카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 라이트할부 승인일 기준이며 실물 카드 발급 후 등록 가능.","월 할부금액이 최종 할인액보다 적으면 월 할부금액까지만 할인됩니다."]},{"name":"삼성카드 T라이트","rows":[[40,10000,22000],[80,15000,23000],[120,20000,24000]],"conditions":["삼성카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 10만원 이상 결제 조건. 삼성전자 갤럭시 단말 대상(태블릿·키즈폰·노트북 포함).","라이트할부 승인일 기준. 과거 해당 카드 청구할인 수혜 이력 등에 따라 추가할인 대상에서 제외될 수 있습니다."]},{"name":"우리카드 T라이트","rows":[[40,10000,24000],[80,15000,29000],[120,20000,31000]],"conditions":["우리카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 10만원 이상 결제 조건. 카드신청 전산 접수 완료일 기준.","기본할인은 라이트할부 할부금에서, 추가할인은 결제대금 총액에서 차감됩니다."]},{"name":"KB카드 T라이트","rows":[[30,8000,25000],[70,12000,26000],[100,14000,27000]],"conditions":["KB국민카드 신규 또는 6개월 이상 무실적 고객 대상. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 라이트할부 승인일 기준."]},{"name":"신한카드 T라이트","rows":[[30,10000,22000],[70,15000,24000]],"conditions":["신한카드 신규 또는 6개월 이상 무실적 고객 대상. 신한 T라이트 최초 발급 조건. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 해외브랜드 Mastercard만 적용.","카드 발급 승인일 기준."]},{"name":"신한카드 파인애플","rows":[[30,10000,22000],[70,15000,24000]],"conditions":["신한카드 신규 또는 6개월 이상 무실적 고객 대상. 신한 파인애플 최초 발급 조건. 기존 고객은 기본할인 적용.","라이트할부 5만원 이상 결제 조건. 해외브랜드 VISA만 적용.","카드 발급 승인일 기준."]}];
 let cardTerms=[["기본할인 36개월 / 추가할인 36개월","요금 자동이체 시 5% 할인"],["36개월 할부 없음","추가 할인 없음"],["기본할인 36개월 / 추가할인 24개월","추가 할인 없음"],["기본할인 36개월 / 추가할인 36개월","요금 자동이체 시 5% 할인"],["기본할인 36개월 / 추가할인 24개월","요금 자동이체 시 5,000원 할인"],["기본할인 36개월 / 추가할인 24개월","4,000원 할인"],["36개월 할부 없음","실적 구간별 3,000원 / 5,000원"],["기본할인 36개월 / 추가할인 36개월","실적 구간별 3,000원 / 5,000원"]];
@@ -654,7 +677,7 @@ function filterMembers(){memberSearchText=search.value;memberStateFilter=stateFi
 search.oninput=filterMembers;stateFilter.onchange=filterMembers;filterMembers();
 }
 
-function resetProducts(){postSearch='';wirelessFilter='all';skwWiredCategory='plans';articleOpen=false;articlePage=1;selectedPost='a18'}
+function resetProducts(){postSearch='';wirelessFilter='plans';skwWiredCategory='plans';articleOpen=false;articlePage=1;selectedPost='a18'}
 function action(text,fn,cls='back'){const b=document.createElement('button');b.textContent=text;b.className=cls;b.onclick=fn;return b}
 function panel(title,desc,fn){const b=action('',fn,'card');const h=document.createElement('strong');h.textContent=title;const p=document.createElement('p');p.textContent=desc;b.append(h,p);return b}
 
@@ -1026,8 +1049,8 @@ function renderWiredQuote(root){
 let skwWiredCategory='plans';
 function renderProducts(root){
 if(category==='wired'){
- const wiredTabs=document.createElement('nav');wiredTabs.className='tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');
- for(const [key,label] of [['plans','요금제'],['settop','셋톱박스'],['bundle','결합'],['install','출동비'],['quote','요금정리']]){
+ const wiredTabs=document.createElement('nav');wiredTabs.className='tabs skw-product-tabs skw-wired-tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');
+ for(const [key,label] of [['quote','요금정리'],['plans','요금제'],['settop','셋톱박스'],['bundle','결합'],['install','출동비']]){
   const tab=action(label,()=>{skwWiredCategory=key;render('products')},skwWiredCategory===key?'active':'');
   tab.setAttribute('aria-pressed',String(skwWiredCategory===key));wiredTabs.append(tab);
  }
@@ -1040,8 +1063,8 @@ if(category==='wired'){
  return;
 }
 
-const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
-for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제'],['bundle','결합']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
+const filters=document.createElement('nav');filters.className='tabs skw-product-tabs skw-wireless-tabs';filters.setAttribute('aria-label','무선 카테고리');
+for(const [value,label] of [['plans','요금제'],['devices','단말기'],['cards','제휴카드'],['bundle','결합']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
 if(wirelessFilter==='plans'){articleOpen=false;renderRatePlans(root);return}
 if(wirelessFilter==='bundle'){articleOpen=false;renderSharedFamilyBundle(root);return}
 if(!articleOpen){
