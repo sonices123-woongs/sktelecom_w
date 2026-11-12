@@ -311,6 +311,26 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .workspaceoperation{border:1px solid #d6e0ee;border-radius:12px;background:#f7f9fd;padding:14px;margin:0 0 15px}.workspaceoperation>strong{font-size:16px}.workspaceoperation .note{margin:8px 0}.workspaceoperationbuttons{display:grid;grid-template-columns:1fr 1fr;gap:8px}.workspaceoperationbuttons button{padding:11px;border:1px solid #bdcde0;border-radius:9px;background:#fff;font-weight:700}.workspaceoperationbuttons button.active{background:#203e6b;color:#fff}.workspaceoperationbuttons button:disabled:not(.active){opacity:.55}
 .retailnoticebox{border:1px solid #e4d3b9;border-radius:12px;background:#fffaf2;padding:12px 13px;margin:0 0 14px}.retailnoticeheader{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#5c3d21}.retailnoticebadge{font-size:11px;background:#fff0d3;color:#9b4e16;border-radius:5px;padding:3px 7px}.retailnoticebox p{font-size:12px;color:#775f4b;margin:7px 0 10px}.retailnoticeopen{border:1px solid #d5b895;background:#fff;color:#7b451d;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px}.retailnoticedialog{width:min(92vw,470px);max-height:82vh;border:0;border-radius:15px;padding:18px;background:#fff;color:#1d2939;box-shadow:0 12px 48px #0003}.retailnoticedialog::backdrop{background:#17243c99}.retailnoticedialog h3{font-size:18px;margin:0 0 14px}.retailnoticebody{overflow:auto;max-height:58vh}.retailnoticeitem{border-bottom:1px solid #e4e9f0;padding:15px 0}.retailnoticeitem:first-child{padding-top:3px}.retailnoticeitem:last-child{border-bottom:0}.retailnoticeparagraph{font-size:14px!important;line-height:1.85!important;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px!important;color:#293b53;word-break:keep-all}.retailnoticeparagraph:last-child{margin-bottom:0!important}.retailnoticehighlight{font-weight:650;color:#24456e!important;background:#f2f6fc;border-left:3px solid #6384b6;border-radius:4px;padding:9px 10px}.retailnoticebullet{padding-left:11px;text-indent:-9px}.retailnoticeclose{display:block;width:100%;margin-top:15px;border:0;border-radius:9px;background:#223e67;color:#fff;font-weight:700;padding:12px}
 .policyretailsticky{position:sticky;top:118px;z-index:25;background:#f6f7f9;padding:7px 0 10px;margin-bottom:10px;border-bottom:1px solid #e1e6ee}.policyretailsticky .policyretailmeta{margin:0 0 9px!important}.policyretailsticky .policyretailmodelrow{margin:0 0 7px}.policyretailsticky .policyretailplanrow{margin:0!important}
+
+/* Responsive rate plan catalog */
+.skw-rate-wrap{width:100%;max-width:100%;min-width:0}
+.skw-rate-head{margin:8px 0 16px}.skw-rate-head h2{margin:5px 0;font-size:25px}.skw-rate-head p{font-size:13px;color:#64748b}
+.skw-rate-groups{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px}
+.skw-rate-groups button{flex:1 0 auto;min-width:54px;border:1px solid #cbd5e1;border-radius:11px;padding:10px 11px;background:#fff;color:#334155;font-weight:700;cursor:pointer}
+.skw-rate-groups button.selected{background:#2563eb;border-color:#2563eb;color:#fff}
+.skw-rate-search input{width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid #cbd5e1;border-radius:12px;font-size:15px;background:white}
+.skw-rate-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,275px),1fr));gap:12px;margin:14px 0}
+.skw-rate-card{min-width:0;border:1px solid #dce3ef;background:#fff;border-radius:16px;padding:17px;box-shadow:0 2px 8px #0f172a0a}
+.skw-rate-cardtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.skw-rate-cardtop h3{font-size:19px;margin:0;color:#0f172a}
+.skw-rate-tag{font-size:11px;font-weight:800;border-radius:7px;background:#eff6ff;color:#1d4ed8;padding:5px 7px}
+.skw-rate-money{display:grid;gap:4px;margin:13px 0;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
+.skw-rate-money span,.skw-rate-data span{font-size:12px;color:#64748b}.skw-rate-money strong{font-size:24px;color:#1d4ed8}
+.skw-rate-money small{font-size:13px;color:#475569}
+.skw-rate-data strong{display:block;font-size:20px;margin:4px 0;color:#0f172a}.skw-rate-data p{font-size:13px;color:#475569;line-height:1.5;margin:3px 0}
+.skw-rate-benefit{font-size:13px;line-height:1.55;margin:12px 0 0;padding:10px;background:#f8fafc;border-radius:9px;overflow-wrap:anywhere}
+.skw-rate-small,.skw-rate-note{font-size:12px;color:#64748b;line-height:1.6}
+@media(max-width:420px){.skw-rate-card{padding:14px}.skw-rate-cardtop h3{font-size:18px}.skw-rate-groups button{font-size:13px;padding:9px 9px}}
+
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -594,11 +614,50 @@ search.oninput=filterMembers;stateFilter.onchange=filterMembers;filterMembers();
 function resetProducts(){postSearch='';wirelessFilter='all';articleOpen=false;articlePage=1;selectedPost='a18'}
 function action(text,fn,cls='back'){const b=document.createElement('button');b.textContent=text;b.className=cls;b.onclick=fn;return b}
 function panel(title,desc,fn){const b=action('',fn,'card');const h=document.createElement('strong');h.textContent=title;const p=document.createElement('p');p.textContent=desc;b.append(h,p);return b}
+
+/* SKW 2026-11 provided rate-plan sheets; displayed as responsive text cards. */
+const skwRatePlans=[["베스트","베스트 Max",129000,96750,"완전 무제한","공유 140GB","Google AI Pro · YouTube Premium · Netflix Premium · Disney+ Premium · TVING/Wavve Premium 중 1택"],["베스트","베스트 Pro",119000,89250,"완전 무제한","공유 120GB","Google AI Plus · YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 109",109000,81750,"완전 무제한","공유 100GB","YouTube Premium Lite · Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 99",99000,74250,"완전 무제한","공유 80GB","Netflix Standard · Disney+ Standard · TVING/Wavve Standard 중 1택"],["베스트","베스트 89",89000,66750,"완전 무제한","공유 60GB","Netflix/Disney+/TVING·Wavve 구독 할인 혜택"],["라이트","라이트 79",79000,59250,"250GB","소진 후 최대 5Mbps · 공유 54GB","스마트기기 1회선 이용요금 50% 할인"],["라이트","라이트 69",69000,51750,"110GB","소진 후 최대 5Mbps · 공유 48GB",""],["라이트","라이트 59",59000,44250,"24GB","소진 후 최대 1Mbps","월 1회 데이터 충전 가능 · 13/30/50GB"],["라이트","라이트 55",55000,41250,"15GB","소진 후 최대 1Mbps","월 1회 4GB 충전 가능"],["라이트","라이트 49",49000,36750,"11GB","소진 후 최대 400Kbps","월 1회 3GB 충전 가능"],["라이트","라이트 45",45000,33750,"8GB","소진 후 최대 400Kbps","월 1회 2GB 충전 가능"],["라이트","라이트 39",39000,29250,"6GB","소진 후 최대 400Kbps","월 1회 1GB 충전 가능"],["라이트","라이트 59 75GB 업",68000,51000,"99GB","기본 24GB + 정기충전 75GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 50GB 업",66000,49500,"74GB","기본 24GB + 정기충전 50GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 30GB 업",64000,48000,"54GB","기본 24GB + 정기충전 30GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["라이트","라이트 59 13GB 업",62000,46500,"37GB","기본 24GB + 정기충전 13GB · 소진 후 최대 1Mbps","데이터플러스 맞춤형 요금제"],["기본","T플랜 세이브",33000,24750,"1.5GB","소진 후 최대 400Kbps","매일 01~07시 데이터 사용 시 데이터 75% 할인"],["기본","뉴 T끼리 맞춤형",27830,20872,"250MB","소진 후 최대 400Kbps","망내 음성 무제한 · 매일 01~07시 데이터 50% 할인"],["어린이","ZEM플랜 퍼펙트",36000,27000,"6GB","소진 후 최대 1Mbps","집전화·이동전화 무제한 · 영상/부가통화 300분"],["어린이","ZEM플랜 베스트",26000,19500,"3GB","소진 후 최대 400Kbps","집전화·이동전화 무제한 · 영상/부가통화 100분"],["어린이","ZEM플랜 스마트",19800,14850,"1.5GB","소진 후 최대 400Kbps","지정 2회선(SKT) 무제한 · 그 외 60분"]];
+function renderRatePlans(root){
+ const wrap=document.createElement('section');wrap.className='skw-rate-wrap';
+ wrap.innerHTML='<div class="skw-rate-head"><span class="eyebrow">SK텔레콤 · 스마트폰</span><h2>요금제 안내</h2><p>2026년 11월 제공 자료 기준 · 부가세 포함</p></div><div class="skw-rate-groups" role="group" aria-label="요금제 종류"></div><div class="skw-rate-search"><input type="search" aria-label="요금제 검색" placeholder="요금제 이름 검색"></div><div class="skw-rate-results" aria-live="polite"></div><p class="skw-rate-note">선택약정 금액은 자료에 표기된 금액이며 가입 조건에 따라 달라질 수 있습니다. 프로모션, 부가 혜택, 데이터 충전 및 무료 회선 조건은 고객 가입 전 반드시 최신 안내를 확인하세요.</p>';
+ root.append(wrap);
+ const groups=wrap.querySelector('.skw-rate-groups'),search=wrap.querySelector('input'),results=wrap.querySelector('.skw-rate-results');
+ let selected='전체';
+ const won=n=>Number(n).toLocaleString('ko-KR')+'원';
+ function draw(){
+  groups.replaceChildren();
+  for(const g of ['전체','베스트','라이트','기본','어린이']){
+   const b=document.createElement('button');b.type='button';b.textContent=g;b.className=g===selected?'selected':'';b.setAttribute('aria-pressed',String(g===selected));b.onclick=()=>{selected=g;draw()};groups.append(b);
+  }
+  results.replaceChildren();
+  const q=search.value.trim().toLowerCase();
+  const visible=skwRatePlans.filter(p=>(selected==='전체'||p[0]===selected)&&(!q||p[1].toLowerCase().includes(q)));
+  if(!visible.length){results.textContent='검색 결과가 없습니다.';return}
+  for(const p of visible){
+   const [group,name,price,discount,data,detail,benefit]=p;
+   const card=document.createElement('article');card.className='skw-rate-card';
+   const top=document.createElement('div');top.className='skw-rate-cardtop';
+   const badge=document.createElement('span');badge.className='skw-rate-tag';badge.textContent=group;
+   const title=document.createElement('h3');title.textContent=name;
+   top.append(badge,title);
+   const money=document.createElement('div');money.className='skw-rate-money';
+   money.innerHTML='<span>월정액</span><strong>'+won(price)+'</strong><small>선택약정 적용 '+won(discount)+'</small>';
+   const dataEl=document.createElement('div');dataEl.className='skw-rate-data';dataEl.innerHTML='<span>데이터</span><strong></strong><p></p>';dataEl.querySelector('strong').textContent=data;dataEl.querySelector('p').textContent=detail;
+   card.append(top,money,dataEl);
+   if(benefit){const e=document.createElement('p');e.className='skw-rate-benefit';e.textContent=benefit;card.append(e)}
+   if(group==='베스트'){const e=document.createElement('p');e.className='skw-rate-small';e.textContent='선택 혜택 및 OTT 프로모션은 요금제별 제공 조건 확인';card.append(e)}
+   results.append(card);
+  }
+ }
+ search.oninput=draw;draw();
+}
+
 function renderProducts(root){
 if(category==='wired'){const box=document.createElement('div');box.className='empty';box.innerHTML='<h2>유선 상품 안내 준비 중</h2><p>아직 등록된 자료가 없습니다.</p>';root.append(box);return}
 
 const filters=document.createElement('nav');filters.className='tabs';filters.setAttribute('aria-label','무선 카테고리');
-for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
+for(const [value,label] of [['all','전체'],['devices','단말기'],['cards','제휴카드'],['plans','요금제']]){const button=action(label,()=>{wirelessFilter=value;articleOpen=false;articlePage=1;render('products')},wirelessFilter===value?'active':'');button.setAttribute('aria-pressed',String(wirelessFilter===value));filters.append(button)}root.append(filters);
+if(wirelessFilter==='plans'){articleOpen=false;renderRatePlans(root);return}
 if(!articleOpen){
 const top=document.createElement('div');top.className='postsearchbar';
 const heading=document.createElement('h2');heading.textContent=wirelessFilter==='all'?'무선 최신 게시글':wirelessFilter==='cards'?'제휴카드 게시글':'단말기 게시글';
