@@ -357,6 +357,22 @@ header{height:64px;min-height:64px;padding:8px 14px 6px;align-items:end}
 .skw-wired-detailbody{padding:11px 4px 0}
 .skw-wired-detailbody p{font-size:13px;line-height:1.65;color:#475569;margin:8px 0;overflow-wrap:anywhere}
 
+
+/* 유선 요금정리: 검색 왼쪽 / 선택 필터 오른쪽 */
+.skw-quote-fields{display:grid;gap:13px;margin:10px 0 16px}
+.skw-quote-field{display:grid;gap:6px;min-width:0}
+.skw-quote-field>label{font-size:14px;color:#334155;font-weight:800}
+.skw-quote-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:8px}
+.skw-quote-controls input,.skw-quote-controls select,.skw-quote-field>input{width:100%;box-sizing:border-box;min-width:0;border:1px solid #cbd5e1;border-radius:10px;padding:11px 10px;background:#fff;color:#0f172a;font-size:14px}
+.skw-quote-summary{background:#fff;border:1px solid #cbd5e1;border-radius:16px;padding:16px;margin:18px 0}
+.skw-quote-headline{display:grid;gap:4px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;margin-bottom:10px}
+.skw-quote-headline span{font-size:13px;color:#64748b}
+.skw-quote-headline strong{font-size:30px;color:#1d4ed8}
+.skw-quote-warning{font-size:12px;color:#92400e;line-height:1.6;background:#fffbeb;border-radius:9px;padding:10px}
+.skw-quote-summary .skw-wired-line strong{white-space:normal;overflow-wrap:anywhere}
+.skw-quote-summary .skw-rate-expand{margin-top:12px}
+@media(max-width:390px){.skw-quote-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.skw-quote-controls input,.skw-quote-controls select{font-size:12px;padding:9px 6px}}
+
 </style><style>
 .policylookup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:8px;row-gap:5px;margin:8px 0}
 .policylookup label{font-size:14px;color:#5d6a7c;display:flex;flex-direction:column;gap:5px}
@@ -860,52 +876,166 @@ function renderSetTopCatalog(root){
  d.innerHTML='<summary>할인·이용 조건 보기</summary><div class="skw-wired-detailbody"><p>3년 약정 요금 기준이며 정상가 3년 합계 316,800원, 할인 요금 3년 합계 198,000원입니다.</p><p>한 집에서 SK Wi-Fi(11ac wave2 기종 이상)를 연결해 이용하는 태블릿 B tv 서비스입니다.</p><p>B tv 셋톱박스와 함께 이용 시 할인 조건을 확인하세요.</p><p>약정 내 해지 또는 장비 변경 시 위약금·할부금 등의 조건이 발생할 수 있습니다.</p></div>';
  air.append(d);grid.append(air);
 }
+
+/* 요즘가족결합: 상세 인터넷/IPTV 결합표 (사용자 제공 2026년 11월 이미지) */
+const skwFamilyDiscountMatrix={
+ 'gigabit':{name:'기가인터넷 (1G 이상)',internet:13200,iptv:1100,mobile:{1:3500,2:7000,3:18000,4:24000,5:24000}},
+ 'lite':{name:'기가라이트인터넷 (500M)',internet:11000,iptv:1100,mobile:{1:3500,2:7000,3:18000,4:24000,5:24000}},
+ 'basic':{name:'광랜인터넷 (100M)',internet:4400,iptv:1100,mobile:{1:3500,2:7000,3:18000,4:18000,5:18000}}
+};
+const skwInstallationFees=[
+ ['인터넷 단독',36300],['인터넷 + 전화 함께 설치',30800],
+ ['인터넷 + TV 함께 설치',34100],['B tv 단독',34100],
+ ['B tv 인터넷과 함께 설치',22000],['B tv 2번째 회선부터',17600],
+ ['Wi-Fi 단독',19800],['Wi-Fi 인터넷과 함께 설치',0]
+];
+function skwPrice(n){return Number(n).toLocaleString('ko-KR')+'원'}
+function skwBuildRow(key,value,emphasis=false){
+ const row=document.createElement('div');row.className='skw-wired-line'+(emphasis?' skw-wired-emphasis':'');
+ const k=document.createElement('span');k.textContent=key;
+ const v=document.createElement('strong');v.textContent=value;row.append(k,v);return row;
+}
+function skwInfoCard(title,description,rows,detailLines=[]){
+ const card=document.createElement('article');card.className='skw-rate-card';
+ const h=document.createElement('h3');h.className='skw-wired-title';h.textContent=title;card.append(h);
+ if(description){const p=document.createElement('p');p.className='skw-wired-desc';p.textContent=description;card.append(p)}
+ for(const [key,value,emphasis] of rows)card.append(skwBuildRow(key,value,!!emphasis));
+ if(detailLines.length){
+  const d=document.createElement('details');d.className='skw-wired-expand';
+  const summary=document.createElement('summary');summary.textContent='상세 조건 보기';d.append(summary);
+  const body=document.createElement('div');body.className='skw-wired-detailbody';
+  for(const line of detailLines){const p=document.createElement('p');p.textContent='• '+line;body.append(p)}
+  d.append(body);card.append(d);
+ }
+ return card;
+}
 function renderSharedFamilyBundle(root){
  const section=document.createElement('section');section.className='skw-wired-wrap skw-bundle-wrap';
- section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">무선 + 유선 공통</span><h2>요즘가족결합</h2><p>휴대폰·인터넷·B tv 결합 혜택 · 제공 이미지 기준</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 이미지 자료의 할인 예시입니다. 실제 결합 할인은 요금제, 결합 회선, 결합 기간, 인터넷 속도, IPTV 가입 및 약정 조건에 따라 달라집니다. 신규 가입 전 운영 기준을 확인하세요.</p>';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">무선 · 유선 공통</span><h2>요즘가족결합</h2><p>인터넷 종류·휴대폰 회선 수별 상세 할인표</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 제공 자료의 인터넷/IPTV 3년 약정·부가세 포함 기준. 휴대폰 단독 결합표(2회선 6,000원 / 3회선 15,000원 / 4회선 20,000원)와 인터넷/IPTV 추가 결합표의 휴대폰 할인 금액은 다릅니다. 아래는 인터넷/IPTV 추가 결합표를 적용한 금액입니다. 가입 전 결합 자격·할인 기간·상품별 적용 조건을 확인하세요.</p>';
  root.append(section);
  const grid=section.querySelector('.skw-rate-results');
- const createCard=(title,subtitle)=>{
-  const c=document.createElement('article');c.className='skw-rate-card';
-  const h=document.createElement('h3');h.className='skw-wired-title';h.textContent=title;c.append(h);
-  if(subtitle){const p=document.createElement('p');p.className='skw-wired-desc';p.textContent=subtitle;c.append(p)}
-  grid.append(c);return c;
+ for(const [key,item] of Object.entries(skwFamilyDiscountMatrix)){
+  const rows=[];
+  for(const n of [1,2,3,4,5]){
+   const mobile=item.mobile[n],total=mobile+item.internet+item.iptv;
+   rows.push([n+'회선 · 휴대폰 할인','-'+skwPrice(mobile)]);
+   rows.push([n+'회선 · 총 할인 (IPTV 포함)','-'+skwPrice(total),true]);
+  }
+  grid.append(skwInfoCard(item.name,'인터넷 할인 -'+skwPrice(item.internet)+' · IPTV 할인 -'+skwPrice(item.iptv),rows,[
+   '총 할인은 휴대폰 할인 + 인터넷 할인 + IPTV 할인 합계입니다.',
+   'IPTV 할인은 적격 IPTV를 함께 결합하는 경우에만 계산됩니다.',
+   '휴대폰 할인은 휴대폰 청구액에 적용되는 항목이며 유선 청구액에서 차감하지 않습니다.'
+  ]));
+ }
+ grid.append(skwInfoCard('휴대폰만 결합 시 안내','상단 요약표에 표시된 휴대폰 할인',[
+  ['2회선','-6,000원'],['3회선','-15,000원'],['4회선','-20,000원'],['5회선','-24,000원']
+ ],['인터넷/IPTV 추가 결합표와 회선별 할인 금액이 다르게 표시되어 있습니다. 할인 구조가 다를 수 있으니 실제 가입 조건을 확인하세요.']));
+}
+function renderWiredInstallation(root){
+ const section=document.createElement('section');section.className='skw-wired-wrap';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 설치</span><h2>출동비 안내</h2><p>출동비는 월 요금이 아닌 설치 시 1회 발생하는 비용입니다.</p></div><div class="skw-rate-results"></div><p class="skw-rate-note">※ 평일 18시 이후, 주말·공휴일 설치 등에는 출동비 할증이 발생할 수 있습니다. 정확한 설치 구성과 청구 금액을 확인하세요.</p>';
+ root.append(section);const grid=section.querySelector('.skw-rate-results');
+ for(const [name,fee] of skwInstallationFees)grid.append(skwInfoCard(name,'설치 시 1회 청구',[['출동비',fee===0?'무료':skwPrice(fee),true]]));
+}
+function renderWiredQuote(root){
+ const section=document.createElement('section');section.className='skw-wired-wrap skw-quote';
+ section.innerHTML='<div class="skw-rate-head"><span class="eyebrow">유선 · 요금 자동 계산</span><h2>요금정리</h2><p>상품을 선택하면 예상 월 요금과 할인 내역이 자동 계산됩니다.</p></div><div class="skw-quote-fields"></div><div class="skw-quote-summary" aria-live="polite"></div><p class="skw-rate-note">※ 제공된 요금표 기준 단순 예상 계산입니다. 인터넷/B tv는 3년 약정 기준으로, 휴대폰 요금제·셋톱 장비할인·Wi-Fi·추가 회선·부가서비스 등에 따라 실청구액이 달라집니다. 휴대폰 결합 할인은 휴대폰 요금에 반영되므로 유선 청구액에서 중복 차감하지 않습니다. 실제 청약 전 확인이 필요합니다.</p>';
+ root.append(section);
+ const fields=section.querySelector('.skw-quote-fields'),summary=section.querySelector('.skw-quote-summary');
+ const addField=(name,choices)=>{
+  const line=document.createElement('div');line.className='skw-quote-field';
+  const label=document.createElement('label');label.textContent=name;
+  const select=document.createElement('select');select.setAttribute('aria-label',name);
+  const search=document.createElement('input');search.type='search';search.setAttribute('aria-label',name+' 검색');search.placeholder=name+' 검색';
+  const entries=choices.map(c=>[String(c[0]),String(c[1])]);
+  const populate=()=>{
+   const old=select.value;const q=search.value.trim().toLowerCase();select.replaceChildren();
+   const match=entries.filter(c=>c[1].toLowerCase().includes(q));
+   if(!match.length){const o=document.createElement('option');o.value='';o.textContent='검색 결과 없음';select.append(o);return}
+   for(const [value,text] of match){const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o)}
+   if(match.some(c=>c[0]===old))select.value=old;else select.value=match[0][0];
+  };
+  const controls=document.createElement('div');controls.className='skw-quote-controls';controls.append(search,select);line.append(label,controls);fields.append(line);
+  populate();search.oninput=()=>{populate();calculate()};select.onchange=calculate;
+  return select;
  };
- const line=(card,key,value)=>{
-  const row=document.createElement('div');row.className='skw-wired-line';
-  const left=document.createElement('span');left.textContent=key;const right=document.createElement('strong');right.textContent=value;row.append(left,right);card.append(row);
- };
- const withDetails=(card,items)=>{
-  const d=document.createElement('details');d.className='skw-wired-expand';
-  const sum=document.createElement('summary');sum.textContent='조건 자세히 보기';d.append(sum);
-  const body=document.createElement('div');body.className='skw-wired-detailbody';
-  for(const item of items){const p=document.createElement('p');p.textContent='• '+item;body.append(p)}
-  d.append(body);card.append(d);
- };
- const mobile=createCard('휴대폰 결합 할인','결합 회선 수에 따른 휴대폰 할인 예시');
- for(const [name,amount] of skwFamilyBundleDiscount)line(mobile,name,amount);
- withDetails(mobile,['회선 수에 따라 휴대폰 할인 금액이 달라집니다.','사진의 상단 표는 2~5회선 기준 안내입니다.','휴대폰 2회선 이상 결합 시 1년 이상 약정된 인터넷(케이블 포함) 등 가입 조건을 확인하세요.']);
- const internet=createCard('인터넷 + IPTV 추가 할인','휴대폰 결합과 함께 적용되는 유선 할인 예시');
- line(internet,'기가인터넷 (1G 이상)','인터넷 -13,200원');
- line(internet,'기가라이트인터넷 (500M)','인터넷 -11,000원');
- line(internet,'광랜인터넷 (100M)','인터넷 -4,400원');
- line(internet,'IPTV 할인','별도 적용 조건 확인');
- withDetails(internet,['가입 인터넷 속도와 결합 회선 수에 따라 총 할인액이 달라집니다.','제공된 자료에는 인터넷 종류별 1~5회선 결합 총 할인 금액 예시가 포함되어 있습니다.','IPTV 결합 시 상품에 따라 추가 할인 항목이 있습니다.','3년 약정·부가세 포함 기준이며 실제 적용 가능 회선과 회선별 요금제 조건을 확인하세요.']);
- const notes=createCard('가입 전 확인할 조건','원본 자료의 결합 주의사항');
- withDetails(notes,['결합 가능한 인터넷 및 IPTV 종류에 제한이 있을 수 있습니다.','가입 회선 수 산정, 가족 관계 및 명의 조건을 확인하세요.','기존 결합 상품과 중복 할인 적용 여부를 확인하세요.','결합 해지·회선 수 변경 시 할인 금액이 변동될 수 있습니다.']);
+ const internetChoices=[['','인터넷 선택 안 함'],...skwWiredInternet.map((p,i)=>[i,p[0]+' · '+skwPrice(p[2])])];
+ const tvChoices=[['','B tv 선택 안 함'],...skwWiredTv.map((p,i)=>[i,p[0]+' · '+skwPrice(p[1])])];
+ const boxChoices=[['','셋톱박스 선택 안 함'],...skwSetTopModels.map((p,i)=>[i,p.name+' · 월 '+p.fee])];
+ const internet=addField('인터넷 요금제',internetChoices);
+ const tv=addField('B tv 요금제',tvChoices);
+ const box=addField('셋톱박스',boxChoices);
+ const phone=addField('이동전화 결합 회선 수',[['0','결합 안 함'],['1','1회선'],['2','2회선'],['3','3회선'],['4','4회선']]);
+ const opt=addField('요금 계산 방식',[['regular','표시된 월정액'],['bundle','B tv 결합 할인 금액 사용']]);
+ const phoneField=document.createElement('div');phoneField.className='skw-quote-field';
+ const phoneLabel=document.createElement('label');phoneLabel.textContent='휴대폰 월 요금 합계 (선택 입력)';
+ const phoneInput=document.createElement('input');phoneInput.type='number';phoneInput.min='0';phoneInput.step='100';phoneInput.placeholder='예: 140000 · 미입력 가능';phoneInput.setAttribute('aria-label',phoneLabel.textContent);
+ phoneField.append(phoneLabel,phoneInput);fields.append(phoneField);phoneInput.oninput=calculate;
+ const note=document.createElement('p');note.className='skw-rate-note';note.textContent='요금 계산 방식: B tv 결합 할인 금액은 표에 적힌 할인 월요금을 사용할 때만 선택하세요. 이 금액과 요즘가족결합의 IPTV 추가 할인이 중복 가능한지는 실제 가입 조건을 확인해야 합니다.';fields.append(note);
+ const settopPrice=s=>Number((s||'0').replace(/[^0-9]/g,''))||0;
+ const bundleKey=p=>p[0].includes('광랜')?'basic':p[0].includes('라이트')?'lite':'gigabit';
+ function calculate(){
+  summary.replaceChildren();
+  const internetPlan=internet.value===''?null:skwWiredInternet[Number(internet.value)];
+  const tvPlan=tv.value===''?null:skwWiredTv[Number(tv.value)];
+  const boxPlan=box.value===''?null:skwSetTopModels[Number(box.value)];
+  const n=Number(phone.value)||0;
+  const baseInternet=internetPlan?internetPlan[2]:0;
+  const baseTv=tvPlan?(opt.value==='bundle'?tvPlan[2]:tvPlan[1]):0;
+  const baseBox=boxPlan?settopPrice(boxPlan.fee):0;
+  const matrix=internetPlan?skwFamilyDiscountMatrix[bundleKey(internetPlan)]:null;
+  const internetDiscount=n>0&&matrix?matrix.internet:0;
+  const iptvDiscount=n>0&&matrix&&tvPlan?matrix.iptv:0;
+  const mobileDiscount=n>0&&matrix?matrix.mobile[n]:0;
+  const monthlyBefore=baseInternet+baseTv+baseBox;
+  const fixedAfter=Math.max(0,monthlyBefore-internetDiscount-iptvDiscount);
+  const mobileBase=phoneInput.value.trim()===''?null:Math.max(0,Number(phoneInput.value)||0);
+  const mobileNet=mobileBase===null?null:Math.max(0,mobileBase-mobileDiscount);
+  const headline=document.createElement('div');headline.className='skw-quote-headline';
+  const h=document.createElement('span');h.textContent='예상 유선 월 요금';const amount=document.createElement('strong');amount.textContent=skwPrice(fixedAfter);headline.append(h,amount);summary.append(headline);
+  for(const [label,value] of [
+   ['인터넷 월정액',skwPrice(baseInternet)],
+   ['B tv 월정액',skwPrice(baseTv)],
+   ['셋톱박스 월정액',skwPrice(baseBox)],
+   ['인터넷 가족결합 할인','-'+skwPrice(internetDiscount)],
+   ['IPTV 가족결합 할인','-'+skwPrice(iptvDiscount)],
+   ['휴대폰 결합 할인 (휴대폰 청구분)','-'+skwPrice(mobileDiscount)]
+  ])summary.append(skwBuildRow(label,value));
+  if(n&&(!internetPlan)){const warn=document.createElement('p');warn.className='skw-quote-warning';warn.textContent='인터넷을 선택해야 인터넷·IPTV 추가 결합표의 휴대폰 할인을 계산할 수 있습니다. 휴대폰만 결합할 때의 할인은 별도 조건이 적용됩니다.';summary.append(warn)}
+  if(mobileBase!==null){
+   summary.append(skwBuildRow('휴대폰 할인 후 예상 요금',skwPrice(mobileNet)));
+   summary.append(skwBuildRow('가구 합산 예상 월 요금',skwPrice(fixedAfter+mobileNet),true));
+  }else{
+   const hint=document.createElement('p');hint.className='skw-quote-warning';hint.textContent='가구 전체 통신비까지 계산하려면 휴대폰 월 요금 합계를 입력하세요.';summary.append(hint);
+  }
+  if(tvPlan&&opt.value==='bundle'){const caution=document.createElement('p');caution.className='skw-quote-warning';caution.textContent='B tv 요금표의 결합 할인 금액과 요즘가족결합 IPTV 할인 중복 적용 여부는 확인이 필요합니다. 계산에서는 두 항목을 모두 반영했으므로 확정 견적이 아닙니다.';summary.append(caution)}
+  const fee=(!internetPlan&&!tvPlan)?0:(internetPlan&&tvPlan?34100:internetPlan?36300:34100);
+  summary.append(skwBuildRow('참고: 신규 설치 출동비 (1회)',skwPrice(fee)));
+  const btn=document.createElement('button');btn.type='button';btn.className='skw-rate-expand';btn.textContent='계산 내역 복사';
+  btn.onclick=()=>{
+   const text=['SKW 요금정리',internetPlan?.[0]||'인터넷 미선택',tvPlan?.[0]||'B tv 미선택',boxPlan?.name||'셋톱박스 미선택','이동전화 '+n+'회선',
+   '유선 예상 월요금 '+skwPrice(fixedAfter),'인터넷 결합 할인 '+skwPrice(internetDiscount),'IPTV 결합 할인 '+skwPrice(iptvDiscount),'휴대폰 결합 할인 '+skwPrice(mobileDiscount),
+   ...(mobileNet!==null?['가구 합산 예상 월요금 '+skwPrice(fixedAfter+mobileNet)]:[]),'별도 설치 출동비 참고 '+skwPrice(fee),'※ 실제 청구 조건 확인 필요'].join('\n');
+   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>{btn.textContent='복사 완료'}).catch(()=>{btn.textContent='복사 불가'});else btn.textContent='복사 불가';
+  };
+  summary.append(btn);
+ }
+ calculate();
 }
 
 let skwWiredCategory='plans';
 function renderProducts(root){
 if(category==='wired'){
  const wiredTabs=document.createElement('nav');wiredTabs.className='tabs';wiredTabs.setAttribute('aria-label','유선 카테고리');
- for(const [key,label] of [['plans','요금제'],['settop','셋톱박스'],['bundle','결합']]){
+ for(const [key,label] of [['plans','요금제'],['settop','셋톱박스'],['bundle','결합'],['install','출동비'],['quote','요금정리']]){
   const tab=action(label,()=>{skwWiredCategory=key;render('products')},skwWiredCategory===key?'active':'');
   tab.setAttribute('aria-pressed',String(skwWiredCategory===key));wiredTabs.append(tab);
  }
  root.append(wiredTabs);
  if(skwWiredCategory==='settop')renderSetTopCatalog(root);
  else if(skwWiredCategory==='bundle')renderSharedFamilyBundle(root);
+ else if(skwWiredCategory==='install')renderWiredInstallation(root);
+ else if(skwWiredCategory==='quote')renderWiredQuote(root);
  else renderWiredPlans(root);
  return;
 }
